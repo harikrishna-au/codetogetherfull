@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: codetogether-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://host.docker.internal:27017/codetogether
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-jwt-secret-key
+      - SESSION_SECRET=your-session-secret-key
+      - FRONTEND_URL=http://localhost:8080
+    depends_on:
+      - redis
+    networks:
+      - codetogether-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: codetogether-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=
+    networks:
+      - codetogether-network
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    hostname: redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - codetogether-network
+
+volumes:
+  redis_data:
+
+networks:
+  codetogether-network:
+    driver: bridge

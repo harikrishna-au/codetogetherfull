@@ -1,0 +1,122 @@
+/* Ensure adjacent forms layout */
+.admin-flex-row {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: linear-gradient(135deg, #f8fafc 0%, #dbeafe 100%);
+  color: #1e293b;
+  margin: 0;
+  min-height: 100vh;
+}
+
+.admin-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 32px 0 #0002, 0 1.5px 4px 0 #60a5fa22;
+  padding: 2.5rem 2rem;
+  margin: 2rem auto;
+  max-width: 600px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-card h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #2563eb;
+  margin-bottom: 1rem;
+  letter-spacing: -1px;
+}
+
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-form-label {
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.2rem;
+}
+
+.admin-form-input, .admin-form-textarea, .admin-form-select {
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+}
+
+.admin-form-input:focus, .admin-form-textarea:focus, .admin-form-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px #60a5fa33;
+  background: #fff;
+}
+
+.admin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.admin-btn-primary {
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px 0 #2563eb22;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.admin-btn-primary:hover {
+  background: linear-gradient(90deg, #1d4ed8 60%, #2563eb 100%);
+  box-shadow: 0 4px 16px 0 #2563eb33;
+}
+
+.admin-btn-danger {
+  background: #dc2626;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px 0 #dc262622;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.admin-btn-danger:hover {
+  background: #b91c1c;
+  box-shadow: 0 4px 16px 0 #dc262633;
+}
+
+.admin-feedback {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+.admin-feedback.success {
+  color: #16a34a;
+}
+.admin-feedback.error {
+  color: #dc2626;
+}
