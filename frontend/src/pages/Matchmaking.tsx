@@ -173,7 +173,7 @@ const Matchmaking = () => {
   return (
     <>
       {user && <ActiveUserHeartbeat userId={user.uid} />}
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-green-900 via-emerald-800 to-green-950 flex items-center justify-center px-4">
       <Card className="bg-white/5 border-white/20 max-w-lg w-full">
         <CardContent className="p-8 text-center">
           {phase === 'matching' ? (
@@ -183,21 +183,21 @@ const Matchmaking = () => {
                 <div className="relative mx-auto w-28 h-28">
                   {/* outer ring */}
                   <div
-                    className="absolute inset-0 rounded-full border-2 border-white/10 border-t-purple-400 animate-spin"
+                    className="absolute inset-0 rounded-full border-2 border-white/10 border-t-yellow-400 animate-spin"
                     style={{ animationDuration: '1.2s' }}
                   />
                   {/* middle ring */}
                   <div
-                    className="absolute inset-2 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin"
+                    className="absolute inset-2 rounded-full border-2 border-white/10 border-t-green-400 animate-spin"
                     style={{ animationDuration: '1.8s' }}
                   />
                   {/* inner ring */}
                   <div
-                    className="absolute inset-4 rounded-full border-2 border-white/10 border-t-pink-400 animate-spin"
+                    className="absolute inset-4 rounded-full border-2 border-white/10 border-t-emerald-400 animate-spin"
                     style={{ animationDuration: '2.4s' }}
                   />
                   {/* glow */}
-                  <div className="absolute inset-6 rounded-full bg-purple-500/20 blur-2xl" />
+                  <div className="absolute inset-6 rounded-full bg-yellow-500/20 blur-2xl" />
                   <span className="sr-only">Matching players…</span>
                 </div>
               </div>

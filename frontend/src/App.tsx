@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import React from "react";
 import { getOrCreateSessionId } from "@/lib/session";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "next-themes";
 
 import { SessionAuthProvider } from "@/context/SessionAuthContext";
 import { SocketProvider } from "@/context/SocketContext";
@@ -22,37 +23,39 @@ const queryClient = new QueryClient();
 
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <SocketProvider>
-          <SessionAuthProvider>
-            <BrowserRouter
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}
-            >
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/matchmaking" element={
-                  <MatchmakingProvider>
-                    <Matchmaking />
-                  </MatchmakingProvider>
-                } />
-                <Route path="/session/:roomId" element={<CodingSession />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-            <NoInternetWidget />
-          </SessionAuthProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <SocketProvider>
+            <SessionAuthProvider>
+              <BrowserRouter
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true,
+                }}
+              >
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/matchmaking" element={
+                    <MatchmakingProvider>
+                      <Matchmaking />
+                    </MatchmakingProvider>
+                  } />
+                  <Route path="/session/:roomId" element={<CodingSession />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+              <NoInternetWidget />
+            </SessionAuthProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
