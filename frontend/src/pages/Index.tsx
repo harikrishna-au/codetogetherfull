@@ -42,7 +42,7 @@ const Index = () => {
   return (
     <>
   {user && <ActiveUserHeartbeat userId={user.uid} />}
-  <div className="min-h-screen bg-gradient-to-br from-green-900 via-emerald-800 to-green-950">
+  <div className="min-h-screen bg-gradient-to-br from-primary via-accent to-primary">
     <Header />
     <div className="flex flex-col items-center justify-center pt-8">
       <ActiveUserCount />
