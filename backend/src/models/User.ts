@@ -1,117 +1,142 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import { User as IUser } from '../types/auth';
+import mongoose, { Schema } from 'mongoose';
+import { User as IUser, SessionRecord } from '@/types/index.js';
 
-export interface UserDocument extends Omit<IUser, '_id'>, Document {
-  _id: string;
-  updateActivity(): Promise<UserDocument>;
-  setInactive(): Promise<UserDocument>;
-}
-
-const UserSchema = new Schema<UserDocument>({
-  googleId: {
+// Session record schema
+const sessionRecordSchema = new Schema<SessionRecord>({
+  roomId: {
     type: String,
     required: true,
-    unique: true
+  },
+  questionId: {
+    type: String,
+    required: true,
+  },
+  completedAt: {
+    type: Date,
+    required: true,
+  },
+  duration: {
+    type: Number,
+    required: true,
+  },
+  partner: {
+    type: String,
+    required: true,
+  },
+}, { _id: false });
+
+// User preferences schema
+const userPreferencesSchema = new Schema({
+  preferredDifficulty: {
+    type: String,
+    enum: ['Easy', 'Medium', 'Hard'],
+    default: 'Easy',
+  },
+  preferredLanguage: {
+    type: String,
+    enum: ['javascript', 'python', 'java', 'cpp'],
+    default: 'javascript',
+  },
+}, { _id: false });
+
+// User schema
+const userSchema = new Schema<IUser>({
+  userId: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true,
   },
   email: {
     type: String,
     required: true,
     unique: true,
+    index: true,
     lowercase: true,
-    trim: true
-  },
-  name: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  avatar: {
-    type: String,
-    default: null
-  },
-  username: {
-    type: String,
-    unique: true,
-    sparse: true,
     trim: true,
-    minlength: 3,
-    maxlength: 20
   },
-  skillLevel: {
+  displayName: {
     type: String,
-    enum: ['beginner', 'intermediate', 'advanced'],
-    default: 'beginner'
+    trim: true,
   },
-  preferredLanguages: [{
-    type: String,
-    trim: true
-  }],
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    index: true,
+  },
+  lastLogin: {
+    type: Date,
+    default: Date.now,
+    index: true,
+  },
   completedQuestions: [{
     type: String,
-    trim: true
+    index: true,
   }],
-  totalSessions: {
-    type: Number,
-    default: 0
+  sessionHistory: [sessionRecordSchema],
+  preferences: {
+    type: userPreferencesSchema,
+    default: () => ({}),
   },
-  lastActive: {
-    type: Date,
-    default: Date.now
-  },
-  isActive: {
-    type: Boolean,
-    default: false
-  }
 }, {
   timestamps: true,
-  collection: 'users'
+  collection: 'users',
 });
 
-// Indexes for better query performance
-UserSchema.index({ email: 1 });
-UserSchema.index({ googleId: 1 });
-UserSchema.index({ username: 1 });
-UserSchema.index({ isActive: 1 });
-UserSchema.index({ lastActive: 1 });
-
-// Pre-save middleware to update lastActive when user becomes active
-UserSchema.pre('save', function(next) {
-  if (this.isModified('isActive') && this.isActive) {
-    this.lastActive = new Date();
-  }
-  next();
-});
+// Indexes
+userSchema.index({ userId: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ lastLogin: -1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ completedQuestions: 1 });
 
 // Instance methods
-UserSchema.methods.updateActivity = function() {
-  this.lastActive = new Date();
-  this.isActive = true;
+userSchema.methods.addCompletedQuestion = function(questionId: string) {
+  if (!this.completedQuestions.includes(questionId)) {
+    this.completedQuestions.push(questionId);
+  }
   return this.save();
 };
 
-UserSchema.methods.setInactive = function() {
-  this.isActive = false;
+userSchema.methods.addSessionRecord = function(sessionRecord: SessionRecord) {
+  this.sessionHistory.push(sessionRecord);
+  return this.save();
+};
+
+userSchema.methods.updateLastLogin = function() {
+  this.lastLogin = new Date();
   return this.save();
 };
 
 // Static methods
-UserSchema.statics.findByGoogleId = function(googleId: string) {
-  return this.findOne({ googleId });
+userSchema.statics.findByUserId = function(userId: string) {
+  return this.findOne({ userId });
 };
 
-UserSchema.statics.findByEmail = function(email: string) {
+userSchema.statics.findByEmail = function(email: string) {
   return this.findOne({ email: email.toLowerCase() });
 };
 
-UserSchema.statics.getActiveUsers = function() {
-  return this.find({ isActive: true }).select('_id name username avatar isActive lastActive');
+userSchema.statics.getActiveUsers = function(since: Date) {
+  return this.find({ lastLogin: { $gte: since } });
 };
 
-// Define interface for static methods
-interface UserModel extends mongoose.Model<UserDocument> {
-  findByGoogleId(googleId: string): Promise<UserDocument | null>;
-  findByEmail(email: string): Promise<UserDocument | null>;
-  getActiveUsers(): Promise<UserDocument[]>;
-}
+userSchema.statics.getUserStats = function(userId: string) {
+  return this.aggregate([
+    { $match: { userId } },
+    {
+      $project: {
+        totalSessions: { $size: '$sessionHistory' },
+        totalQuestionsCompleted: { $size: '$completedQuestions' },
+        averageSessionDuration: { $avg: '$sessionHistory.duration' },
+        lastSession: { $max: '$sessionHistory.completedAt' },
+        preferences: 1,
+        createdAt: 1,
+        lastLogin: 1,
+      },
+    },
+  ]);
+};
 
-export const User = mongoose.model<UserDocument, UserModel>('User', UserSchema);
+// Export the model
+export const User = mongoose.model<IUser>('User', userSchema);

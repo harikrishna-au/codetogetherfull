@@ -1,107 +1,197 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import { Session as ISession } from '../types/auth';
+import mongoose, { Schema } from 'mongoose';
 
-export interface SessionDocument extends Omit<ISession, '_id'>, Document {
-  _id: string;
-  updateHeartbeat(): Promise<SessionDocument>;
-  expire(): Promise<SessionDocument>;
-}
-
-const SessionSchema = new Schema<SessionDocument>({
+// Code submission schema
+const codeSubmissionSchema = new Schema({
   userId: {
     type: String,
-    required: true
+    required: true,
   },
+  code: {
+    type: String,
+    required: true,
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now,
+  },
+  testResults: {
+    type: Schema.Types.Mixed,
+  },
+}, { _id: false });
+
+// Session schema for analytics
+const sessionSchema = new Schema({
   roomId: {
     type: String,
-    default: null
+    required: true,
+    index: true,
   },
-  partnerId: {
+  participants: [{
     type: String,
-    default: null
+    required: true,
+  }],
+  questionId: {
+    type: String,
+    required: true,
+    index: true,
   },
-  isActive: {
+  startedAt: {
+    type: Date,
+    required: true,
+    index: true,
+  },
+  endedAt: {
+    type: Date,
+    index: true,
+  },
+  duration: {
+    type: Number, // in milliseconds
+  },
+  completed: {
     type: Boolean,
-    default: true
+    default: false,
   },
-  sessionToken: {
+  codeSubmissions: [codeSubmissionSchema],
+  chatMessageCount: {
+    type: Number,
+    default: 0,
+  },
+  difficulty: {
     type: String,
     required: true,
-    unique: true
+    enum: ['Easy', 'Medium', 'Hard'],
+    index: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  expiresAt: {
-    type: Date,
+  mode: {
+    type: String,
     required: true,
-    index: { expireAfterSeconds: 0 }
+    enum: ['friendly', 'challenge'],
+    index: true,
   },
-  lastHeartbeat: {
-    type: Date,
-    default: Date.now
-  }
 }, {
-  collection: 'sessions'
+  timestamps: true,
+  collection: 'sessions',
 });
 
-// Indexes for better query performance
-SessionSchema.index({ userId: 1, isActive: 1 });
-SessionSchema.index({ sessionToken: 1 });
-SessionSchema.index({ expiresAt: 1 });
-SessionSchema.index({ lastHeartbeat: 1 });
-
-// Static methods
-SessionSchema.statics.findByToken = function(sessionToken: string) {
-  return this.findOne({ 
-    sessionToken, 
-    isActive: true,
-    expiresAt: { $gt: new Date() }
-  });
-};
-
-SessionSchema.statics.findActiveByUserId = function(userId: string) {
-  return this.findOne({ 
-    userId, 
-    isActive: true,
-    expiresAt: { $gt: new Date() }
-  });
-};
-
-SessionSchema.statics.expireUserSessions = function(userId: string) {
-  return this.updateMany(
-    { userId, isActive: true },
-    { isActive: false }
-  );
-};
-
-SessionSchema.statics.cleanExpiredSessions = function() {
-  return this.deleteMany({
-    $or: [
-      { expiresAt: { $lt: new Date() } },
-      { isActive: false }
-    ]
-  });
-};
-
-// Define interface for static methods
-interface SessionModel extends mongoose.Model<SessionDocument> {
-  findByToken(sessionToken: string): Promise<SessionDocument | null>;
-  findActiveByUserId(userId: string): Promise<SessionDocument | null>;
-  expireUserSessions(userId: string): Promise<any>;
-  cleanExpiredSessions(): Promise<any>;
-}
+// Indexes
+sessionSchema.index({ roomId: 1 });
+sessionSchema.index({ participants: 1 });
+sessionSchema.index({ startedAt: -1 });
+sessionSchema.index({ questionId: 1 });
+sessionSchema.index({ difficulty: 1, mode: 1 });
+sessionSchema.index({ completed: 1 });
 
 // Instance methods
-SessionSchema.methods.updateHeartbeat = function() {
-  this.lastHeartbeat = new Date();
+sessionSchema.methods.addCodeSubmission = function(userId: string, code: string, testResults?: any) {
+  this.codeSubmissions.push({
+    userId,
+    code,
+    timestamp: new Date(),
+    testResults,
+  });
   return this.save();
 };
 
-SessionSchema.methods.expire = function() {
-  this.isActive = false;
+sessionSchema.methods.endSession = function(completed: boolean = false) {
+  this.endedAt = new Date();
+  this.duration = this.endedAt.getTime() - this.startedAt.getTime();
+  this.completed = completed;
   return this.save();
 };
 
-export const Session = mongoose.model<SessionDocument, SessionModel>('Session', SessionSchema);
+sessionSchema.methods.incrementChatCount = function() {
+  this.chatMessageCount += 1;
+  return this.save();
+};
+
+// Static methods
+sessionSchema.statics.findByParticipant = function(userId: string) {
+  return this.find({ participants: userId }).sort({ startedAt: -1 });
+};
+
+sessionSchema.statics.findByQuestion = function(questionId: string) {
+  return this.find({ questionId }).sort({ startedAt: -1 });
+};
+
+sessionSchema.statics.getSessionStats = function(startDate?: Date, endDate?: Date) {
+  const matchStage: any = {};
+  if (startDate || endDate) {
+    matchStage.startedAt = {};
+    if (startDate) matchStage.startedAt.$gte = startDate;
+    if (endDate) matchStage.startedAt.$lte = endDate;
+  }
+
+  return this.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: null,
+        totalSessions: { $sum: 1 },
+        completedSessions: { $sum: { $cond: ['$completed', 1, 0] } },
+        avgDuration: { $avg: '$duration' },
+        avgChatMessages: { $avg: '$chatMessageCount' },
+        byDifficulty: {
+          $push: {
+            difficulty: '$difficulty',
+            count: 1,
+            avgDuration: '$duration',
+          },
+        },
+        byMode: {
+          $push: {
+            mode: '$mode',
+            count: 1,
+            avgDuration: '$duration',
+          },
+        },
+      },
+    },
+  ]);
+};
+
+sessionSchema.statics.getDailyStats = function(days: number = 30) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  return this.aggregate([
+    { $match: { startedAt: { $gte: startDate } } },
+    {
+      $group: {
+        _id: {
+          year: { $year: '$startedAt' },
+          month: { $month: '$startedAt' },
+          day: { $dayOfMonth: '$startedAt' },
+        },
+        sessions: { $sum: 1 },
+        completed: { $sum: { $cond: ['$completed', 1, 0] } },
+        avgDuration: { $avg: '$duration' },
+      },
+    },
+    { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } },
+  ]);
+};
+
+sessionSchema.statics.getPopularQuestions = function(limit: number = 10) {
+  return this.aggregate([
+    {
+      $group: {
+        _id: '$questionId',
+        sessionCount: { $sum: 1 },
+        completionRate: { $avg: { $cond: ['$completed', 1, 0] } },
+        avgDuration: { $avg: '$duration' },
+      },
+    },
+    { $sort: { sessionCount: -1 } },
+    { $limit: limit },
+  ]);
+};
+
+sessionSchema.statics.getUserSessionHistory = function(userId: string, limit: number = 20) {
+  return this.find({ participants: userId })
+    .sort({ startedAt: -1 })
+    .limit(limit)
+    .populate('questionId', 'title difficulty');
+};
+
+// Export the model
+export const Session = mongoose.model('Session', sessionSchema);
