@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import Badge from '../components/Badge';
+import Input from '../components/Input';
 
 interface Question {
   id?: string;
+  questionId?: string; // Add questionId field
   title: string;
   difficulty: string;
   description: string;
@@ -39,6 +44,7 @@ export default function ViewQuestions() {
   }, []);
 
   const fetchQuestions = async () => {
+    setLoading(true);
     try {
       const questions = await api.questions.getAll();
       setQuestions(questions);
@@ -64,8 +70,9 @@ export default function ViewQuestions() {
 
   const handleQuestionSelect = (question: Question) => {
     setSelectedQuestion(question);
-    if (question.id) {
-      fetchTestCases(question.id);
+    const qId = question.questionId || question.id;
+    if (qId) {
+      fetchTestCases(qId);
     }
   };
 
@@ -76,8 +83,8 @@ export default function ViewQuestions() {
 
     try {
       await api.questions.delete(questionId);
-      setQuestions(questions.filter(q => q.id !== questionId));
-      if (selectedQuestion?.id === questionId) {
+      setQuestions(questions.filter(q => (q.questionId || q.id) !== questionId));
+      if ((selectedQuestion?.questionId || selectedQuestion?.id) === questionId) {
         setSelectedQuestion(null);
         setSelectedTestCases([]);
       }
@@ -89,30 +96,26 @@ export default function ViewQuestions() {
 
   const filteredQuestions = questions.filter(question => {
     const matchesSearch = question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         question.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDifficulty = difficultyFilter === 'all' || question.difficulty === difficultyFilter;
-    
+      question.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDifficulty = difficultyFilter === 'all' || question.difficulty.toLowerCase() === difficultyFilter.toLowerCase();
+
     return matchesSearch && matchesDifficulty;
   });
 
-  const getDifficultyColor = (difficulty: string) => {
+  const getDifficultyVariant = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return 'bg-green-100 text-green-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'hard':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'easy': return 'success';
+      case 'medium': return 'warning';
+      case 'hard': return 'danger';
+      default: return 'default';
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Loading questions...</span>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600 text-lg">Loading questions...</span>
       </div>
     );
   }
@@ -121,31 +124,26 @@ export default function ViewQuestions() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Questions ({questions.length})</h1>
-        <button
-          onClick={fetchQuestions}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
+        <Button onClick={fetchQuestions}>
           Refresh
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <Card className="p-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
-            <input
-              type="text"
+            <Input
               placeholder="Search questions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div>
             <select
               value={difficultyFilter}
               onChange={(e) => setDifficultyFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px] bg-white"
             >
               <option value="all">All Difficulties</option>
               <option value="easy">Easy</option>
@@ -154,55 +152,59 @@ export default function ViewQuestions() {
             </select>
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Questions List */}
         <div className="lg:col-span-1 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            Questions ({filteredQuestions.length})
+            Results ({filteredQuestions.length})
           </h2>
-          
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {filteredQuestions.map((question) => (
-              <div
-                key={question.id}
-                onClick={() => handleQuestionSelect(question)}
-                className={`bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 ${
-                  selectedQuestion?.id === question.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">{question.title}</h3>
-                    <p className="text-sm text-gray-600 line-clamp-2">{question.description}</p>
+
+          <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+            {filteredQuestions.map((question) => {
+              const qId = question.questionId || question.id;
+              const isSelected = (selectedQuestion?.questionId || selectedQuestion?.id) === qId;
+
+              return (
+                <div
+                  key={qId}
+                  onClick={() => handleQuestionSelect(question)}
+                  className={`bg-white rounded-lg shadow-sm p-4 cursor-pointer hover:shadow-md transition-all duration-200 border-l-4 ${isSelected
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 mb-1">{question.title}</h3>
+                      <p className="text-sm text-gray-600 line-clamp-2">{question.description}</p>
+                    </div>
+                    <Badge variant={getDifficultyVariant(question.difficulty) as any}>
+                      {question.difficulty}
+                    </Badge>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
-                    {question.difficulty}
-                  </span>
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-xs text-gray-500 font-mono">ID: {qId}</span>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (qId) deleteQuestion(qId);
+                      }}
+                      className="!px-2 !py-0.5 text-xs"
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-gray-500">ID: {question.id}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (question.id) {
-                        deleteQuestion(question.id);
-                      }
-                    }}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {filteredQuestions.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 bg-white rounded-lg shadow-sm p-6">
               No questions found matching your criteria.
             </div>
           )}
@@ -211,13 +213,13 @@ export default function ViewQuestions() {
         {/* Question Details */}
         <div className="lg:col-span-2">
           {selectedQuestion ? (
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <Card className="sticky top-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedQuestion.title}</h2>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(selectedQuestion.difficulty)}`}>
+                  <Badge variant={getDifficultyVariant(selectedQuestion.difficulty) as any}>
                     {selectedQuestion.difficulty}
-                  </span>
+                  </Badge>
                 </div>
                 <button
                   onClick={() => setSelectedQuestion(null)}
@@ -227,10 +229,12 @@ export default function ViewQuestions() {
                 </button>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-6 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
-                  <p className="text-gray-700 leading-relaxed">{selectedQuestion.description}</p>
+                  <div className="bg-gray-50 p-4 rounded-lg text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {selectedQuestion.description}
+                  </div>
                 </div>
 
                 {selectedQuestion.examples && selectedQuestion.examples.length > 0 && (
@@ -238,13 +242,13 @@ export default function ViewQuestions() {
                     <h3 className="font-semibold text-gray-900 mb-3">Examples</h3>
                     <div className="space-y-4">
                       {selectedQuestion.examples.map((example, index) => (
-                        <div key={index} className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="font-medium text-gray-900 mb-2">Example {index + 1}</h4>
+                        <div key={index} className="bg-gray-50 border border-gray-100 rounded-lg p-4">
+                          <h4 className="font-medium text-gray-900 mb-2 text-sm uppercase tracking-wider">Example {index + 1}</h4>
                           <div className="space-y-2 font-mono text-sm">
-                            <div><strong>Input:</strong> {example.input}</div>
-                            <div><strong>Output:</strong> {example.output}</div>
+                            <div><strong className="text-gray-500">Input:</strong> {example.input}</div>
+                            <div><strong className="text-gray-500">Output:</strong> {example.output}</div>
                             {example.explanation && (
-                              <div><strong>Explanation:</strong> {example.explanation}</div>
+                              <div><strong className="text-gray-500">Explanation:</strong> {example.explanation}</div>
                             )}
                           </div>
                         </div>
@@ -256,9 +260,9 @@ export default function ViewQuestions() {
                 {selectedQuestion.constraints && selectedQuestion.constraints.length > 0 && (
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-3">Constraints</h3>
-                    <ul className="list-disc list-inside space-y-1 text-gray-700">
+                    <ul className="list-disc list-inside space-y-1 text-gray-700 bg-gray-50 p-4 rounded-lg">
                       {selectedQuestion.constraints.map((constraint, index) => (
-                        <li key={index}>{constraint}</li>
+                        <li key={index} className="font-mono text-sm">{constraint}</li>
                       ))}
                     </ul>
                   </div>
@@ -266,44 +270,44 @@ export default function ViewQuestions() {
 
                 {/* Test Cases Section */}
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Test Cases</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900">Major Test Cases</h3>
+                    <Badge variant="info" size="sm">{selectedTestCases.length} Cases</Badge>
+                  </div>
+
                   {loadingTestCases ? (
-                    <div className="flex items-center justify-center py-4">
+                    <div className="flex items-center justify-center py-8 bg-gray-50 rounded-lg">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                       <span className="ml-2 text-gray-600">Loading test cases...</span>
                     </div>
                   ) : selectedTestCases.length > 0 ? (
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
                       {selectedTestCases.map((testCase, index) => (
-                        <div key={index} className="bg-gray-50 rounded-lg p-4 border">
-                          <h4 className="font-medium text-gray-900 mb-2">Test Case {index + 1}</h4>
+                        <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <h4 className="font-medium text-gray-900 mb-2 text-xs uppercase tracking-wider">Test Case {index + 1}</h4>
                           <div className="space-y-2 font-mono text-sm">
                             <div>
-                              <strong>Input:</strong> 
-                              <pre className="mt-1 bg-white p-2 rounded border text-xs overflow-x-auto">
-                                {typeof testCase.input === 'object' 
-                                  ? JSON.stringify(testCase.input, null, 2) 
+                              <strong className="text-gray-500 block mb-1">Input:</strong>
+                              <pre className="bg-white p-2 rounded border border-gray-200 text-xs overflow-x-auto">
+                                {typeof testCase.input === 'object'
+                                  ? JSON.stringify(testCase.input, null, 2)
                                   : testCase.input}
                               </pre>
                             </div>
                             <div>
-                              <strong>Expected Output:</strong> 
-                              <pre className="mt-1 bg-white p-2 rounded border text-xs overflow-x-auto">
+                              <strong className="text-gray-500 block mb-1">Expected Output:</strong>
+                              <pre className="bg-white p-2 rounded border border-gray-200 text-xs overflow-x-auto">
                                 {testCase.output}
                               </pre>
                             </div>
-                            {testCase.explanation && (
-                              <div>
-                                <strong>Explanation:</strong> 
-                                <p className="mt-1 text-gray-700">{testCase.explanation}</p>
-                              </div>
-                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-center py-4">No test cases found for this question</p>
+                    <div className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">
+                      No major test cases found for this question
+                    </div>
                   )}
                 </div>
 
@@ -313,7 +317,7 @@ export default function ViewQuestions() {
                     <h3 className="font-semibold text-gray-900 mb-3">Tags</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedQuestion.tags.map((tag, index) => (
-                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                           {tag}
                         </span>
                       ))}
@@ -321,30 +325,25 @@ export default function ViewQuestions() {
                   </div>
                 )}
 
-                {selectedQuestion.hints && selectedQuestion.hints.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Hints</h3>
-                    <div className="space-y-2">
-                      {selectedQuestion.hints.map((hint, index) => (
-                        <div key={index} className="bg-yellow-50 border-l-4 border-yellow-400 p-3">
-                          <p className="text-yellow-800">{hint}</p>
-                        </div>
-                      ))}
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold text-gray-900 mb-2">Technical Details</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs text-gray-500 block">Question ID</span>
+                      <code className="bg-gray-100 px-2 py-1 rounded text-sm text-gray-700">{selectedQuestion.questionId || selectedQuestion.id}</code>
                     </div>
                   </div>
-                )}
-
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Question ID</h3>
-                  <code className="bg-gray-100 px-2 py-1 rounded text-sm">{selectedQuestion.id}</code>
                 </div>
               </div>
-            </div>
+            </Card>
           ) : (
-            <div className="bg-white rounded-lg shadow-md p-6 text-center text-gray-500">
-              <div className="text-4xl mb-4">📝</div>
-              <p>Select a question from the list to view its details</p>
-            </div>
+            <Card className="h-full min-h-[400px] flex items-center justify-center text-center text-gray-500 p-12">
+              <div>
+                <div className="text-6xl mb-4 opacity-20">📝</div>
+                <h3 className="text-xl font-medium text-gray-900 mb-2">No Question Selected</h3>
+                <p>Select a question from the list to view its full details and test cases.</p>
+              </div>
+            </Card>
           )}
         </div>
       </div>
