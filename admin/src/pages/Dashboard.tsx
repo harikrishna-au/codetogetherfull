@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import Badge from '../components/Badge';
 
 interface DashboardProps {
   onNavigate: (page: 'dashboard' | 'view-questions' | 'add-question' | 'clear-queues') => void;
@@ -41,28 +44,36 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       title: 'Total Questions',
       value: stats.totalQuestions,
       icon: '📝',
-      color: 'blue',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600',
+      borderColor: 'border-blue-500',
       action: () => onNavigate('view-questions')
     },
     {
       title: 'Active Users',
       value: stats.activeUsers,
       icon: '👥',
-      color: 'green',
-      action: () => {}
+      bgColor: 'bg-green-50',
+      textColor: 'text-green-600',
+      borderColor: 'border-green-500',
+      action: () => { }
     },
     {
       title: 'Queue Length',
       value: stats.queueLength,
       icon: '⏳',
-      color: 'yellow',
+      bgColor: 'bg-yellow-50',
+      textColor: 'text-yellow-600',
+      borderColor: 'border-yellow-500',
       action: () => onNavigate('clear-queues')
     },
     {
       title: 'Questions Today',
       value: stats.questionsToday,
       icon: '📅',
-      color: 'purple',
+      bgColor: 'bg-purple-50',
+      textColor: 'text-purple-600',
+      borderColor: 'border-purple-500',
       action: () => onNavigate('add-question')
     }
   ];
@@ -72,105 +83,81 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       title: 'Add New Question',
       description: 'Create a new coding question with test cases',
       icon: '➕',
-      color: 'blue',
       action: () => onNavigate('add-question')
     },
     {
       title: 'View All Questions',
       description: 'Browse and manage existing questions',
       icon: '📝',
-      color: 'green',
       action: () => onNavigate('view-questions')
     },
     {
       title: 'Clear Queues',
       description: 'Reset matchmaking queues and user states',
       icon: '🧹',
-      color: 'red',
       action: () => onNavigate('clear-queues')
-    },
-    {
-      title: 'Initialize Sample Questions',
-      description: 'Load sample questions into the database',
-      icon: '🚀',
-      color: 'purple',
-      action: () => initializeSampleQuestions()
     }
   ];
-
-  const initializeSampleQuestions = async () => {
-    try {
-      const result = await api.questions.initializeSample();
-      alert(`Successfully initialized ${result.totalQuestions} questions!`);
-      fetchStats(); // Refresh stats
-    } catch (error) {
-      alert('Error initializing questions: ' + error);
-    }
-  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Loading dashboard...</span>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600 text-lg">Loading dashboard...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <button
-          onClick={fetchStats}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Refresh Stats
-        </button>
-      </div>
-
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {dashboardCards.map((card, index) => (
-          <div
-            key={index}
-            onClick={card.action}
-            className={`bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 ${
-              card.color === 'blue' ? 'border-blue-500 hover:border-blue-600' :
-              card.color === 'green' ? 'border-green-500 hover:border-green-600' :
-              card.color === 'yellow' ? 'border-yellow-500 hover:border-yellow-600' :
-              'border-purple-500 hover:border-purple-600'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Overview</h2>
+          <Button onClick={fetchStats} variant="secondary" size="sm">
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </span>
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {dashboardCards.map((card, index) => (
+            <div
+              key={index}
+              onClick={card.action}
+              className={`bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 ${card.borderColor} ${card.bgColor}`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
+                  <p className={`text-3xl font-bold ${card.textColor}`}>{card.value}</p>
+                </div>
+                <span className="text-4xl">{card.icon}</span>
               </div>
-              <span className="text-2xl">{card.icon}</span>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quickActions.map((action, index) => (
             <div
               key={index}
               onClick={action.action}
-              className={`bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all duration-200 border ${
-                action.color === 'blue' ? 'hover:border-blue-300' :
-                action.color === 'green' ? 'hover:border-green-300' :
-                action.color === 'red' ? 'hover:border-red-300' :
-                'hover:border-purple-300'
-              }`}
+              className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all duration-200 border border-gray-200 hover:border-blue-300"
             >
               <div className="flex items-start gap-4">
-                <span className="text-3xl">{action.icon}</span>
-                <div>
+                <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
+                  {action.icon}
+                </div>
+                <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 mb-1">{action.title}</h3>
                   <p className="text-sm text-gray-600">{action.description}</p>
                 </div>
@@ -180,25 +167,25 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
       </div>
 
-      {/* Recent Activity */}
+      {/* System Status */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">System Status</h2>
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-2 border-b">
-              <span className="text-gray-600">Database Status</span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Connected</span>
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">System Status</h2>
+        <Card>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+              <span className="text-gray-700 font-medium">Database Status</span>
+              <Badge variant="success">Connected</Badge>
             </div>
-            <div className="flex items-center justify-between py-2 border-b">
-              <span className="text-gray-600">Question Service</span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Online</span>
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+              <span className="text-gray-700 font-medium">Question Service</span>
+              <Badge variant="success">Online</Badge>
             </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-gray-600">Matchmaking Service</span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Active</span>
+            <div className="flex items-center justify-between py-3">
+              <span className="text-gray-700 font-medium">Matchmaking Service</span>
+              <Badge variant="success">Active</Badge>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

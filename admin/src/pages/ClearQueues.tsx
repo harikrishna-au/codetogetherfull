@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import Button from '../components/Button';
 
 interface QueueStats {
   friendlyQueue: number;
@@ -94,13 +95,14 @@ export default function ClearQueues() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Queue Management</h1>
-        <button
+        <Button
           onClick={fetchStats}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          variant="secondary"
+          size="sm"
           disabled={statsLoading}
         >
           {statsLoading ? 'Loading...' : 'Refresh Stats'}
-        </button>
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -202,11 +204,10 @@ export default function ClearQueues() {
 
       {/* Result Message */}
       {result && (
-        <div className={`p-4 rounded-lg ${
-          result.includes('successfully') 
-            ? 'bg-green-100 border border-green-300 text-green-800' 
-            : 'bg-red-100 border border-red-300 text-red-800'
-        }`}>
+        <div className={`p-4 rounded-lg ${result.includes('successfully')
+          ? 'bg-green-100 border border-green-300 text-green-800'
+          : 'bg-red-100 border border-red-300 text-red-800'
+          }`}>
           {result}
         </div>
       )}
