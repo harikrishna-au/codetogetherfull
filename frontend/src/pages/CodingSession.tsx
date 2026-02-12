@@ -32,7 +32,7 @@ const CodingSession = () => {
       navigate('/', { replace: true });
       return;
     }
-    
+
     // Simple validation - just check if roomId looks valid (UUID format)
     const isValidRoomId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomId);
     if (!isValidRoomId) {
@@ -41,7 +41,7 @@ const CodingSession = () => {
       navigate('/', { replace: true });
       return;
     }
-    
+
     // Clear the flag if we successfully reached a valid session
     sessionStorage.removeItem('fromSession');
     console.log('[CodingSession] Valid user and roomId, proceeding with session');
@@ -162,63 +162,63 @@ const CodingSession = () => {
 
   return (
     <>
-      {user && <ActiveUserHeartbeat userId={user.uid} />}
+      {user && <ActiveUserHeartbeat userId={user.id} />}
       <div className="flex flex-col h-screen">
 
-      <div className="flex h-[calc(100vh-3rem)]">
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          {/* Left Panel - Problem Description */}
-          <ResizablePanel defaultSize={35} minSize={25}>
-            <ProblemPanel difficulty={difficulty} roomId={roomId} />
-          </ResizablePanel>
+        <div className="flex h-[calc(100vh-3rem)]">
+          <ResizablePanelGroup direction="horizontal" className="flex-1">
+            {/* Left Panel - Problem Description */}
+            <ResizablePanel defaultSize={35} minSize={25}>
+              <ProblemPanel difficulty={difficulty} roomId={roomId} />
+            </ResizablePanel>
 
-          <ResizableHandle withHandle />
+            <ResizableHandle withHandle />
 
-          {/* Right Panel - Code Editor and Results */}
-          <ResizablePanel defaultSize={65}>
-            <ResizablePanelGroup direction="vertical">
-              {/* Code Editor */}
+            {/* Right Panel - Code Editor and Results */}
+            <ResizablePanel defaultSize={65}>
+              <ResizablePanelGroup direction="vertical">
+                {/* Code Editor */}
 
-              <ResizablePanel defaultSize={70} minSize={50}>
-                <EditorPanel
-                  code={code}
-                  setCode={setCode}
-                  isSubmitting={isSubmitting}
-                  handleSubmit={handleSubmit}
-                  isVideoOn={isVideoOn}
-                  setIsVideoOn={setIsVideoOn}
-                  isAudioOn={isAudioOn}
-                  setIsAudioOn={setIsAudioOn}
-                  isChatOpen={isChatOpen}
-                  setIsChatOpen={setIsChatOpen}
-                  handleExitSession={handleExitSession}
-                  roomId={roomId || ''}
-                />
-              </ResizablePanel>
+                <ResizablePanel defaultSize={70} minSize={50}>
+                  <EditorPanel
+                    code={code}
+                    setCode={setCode}
+                    isSubmitting={isSubmitting}
+                    handleSubmit={handleSubmit}
+                    isVideoOn={isVideoOn}
+                    setIsVideoOn={setIsVideoOn}
+                    isAudioOn={isAudioOn}
+                    setIsAudioOn={setIsAudioOn}
+                    isChatOpen={isChatOpen}
+                    setIsChatOpen={setIsChatOpen}
+                    handleExitSession={handleExitSession}
+                    roomId={roomId || ''}
+                  />
+                </ResizablePanel>
 
-              <ResizableHandle withHandle />
+                <ResizableHandle withHandle />
 
-              {/* Results Panel */}
-              <ResizablePanel defaultSize={30} minSize={20}>
-                <ResultsPanel />
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+                {/* Results Panel */}
+                <ResizablePanel defaultSize={30} minSize={20}>
+                  <ResultsPanel />
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </ResizablePanel>
+          </ResizablePanelGroup>
 
-        {/* Chat Sidebar */}
-        {isChatOpen && (
-          <ChatSidebar
-            isChatOpen={isChatOpen}
-            setIsChatOpen={setIsChatOpen}
-            chatMessage={chatMessage}
-            setChatMessage={setChatMessage}
-            chatMessages={chatMessages}
-            handleSendMessage={handleSendMessage}
-            currentUserName={userName}
-          />
-        )}
-      </div>
+          {/* Chat Sidebar */}
+          {isChatOpen && (
+            <ChatSidebar
+              isChatOpen={isChatOpen}
+              setIsChatOpen={setIsChatOpen}
+              chatMessage={chatMessage}
+              setChatMessage={setChatMessage}
+              chatMessages={chatMessages}
+              handleSendMessage={handleSendMessage}
+              currentUserName={userName}
+            />
+          )}
+        </div>
       </div>
     </>
   );

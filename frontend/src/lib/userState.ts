@@ -10,9 +10,18 @@ export interface UserStateData {
   updatedAt?: any;
 }
 
-export async function fetchUserState(userId: string): Promise<UserStateData | null> {
+export async function fetchUserState(userId: string, token?: string | null): Promise<UserStateData | null> {
   try {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json'
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`http://localhost:4000/api/users/${userId}/state`, {
+      method: "GET",
+      headers,
       credentials: 'include'
     });
     if (!response.ok) return null;

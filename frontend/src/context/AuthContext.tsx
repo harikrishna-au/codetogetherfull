@@ -1,33 +1,14 @@
 import React from 'react';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { useUser, useAuth } from '@clerk/clerk-react';
 
-export const AuthContext = React.createContext<{ user: User | null; loading: boolean }>({ user: null, loading: true });
+export const AuthContext = React.createContext<{ user: any; loading: boolean }>({ user: null, loading: true });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    try {
-      const unsub = onAuthStateChanged(auth, (u) => {
-        setUser(u);
-        setLoading(false);
-      }, (error) => {
-        console.error('Firebase auth state change error:', error);
-        setUser(null);
-        setLoading(false);
-      });
-      return () => unsub();
-    } catch (error) {
-      console.error('Firebase auth initialization error:', error);
-      setUser(null);
-      setLoading(false);
-    }
-  }, []);
+  const { user, isLoaded } = useUser();
+  const { isSignedIn } = useAuth();
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user: user || null, loading: !isLoaded }}>
       {children}
     </AuthContext.Provider>
   );

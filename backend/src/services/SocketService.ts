@@ -1,6 +1,6 @@
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { authenticateSocket } from '@/middleware/auth.js';
-import { UserState } from '@/models/UserState.js';
+import { supabase } from '@/config/supabase.js';
 import { logger } from '@/utils/logger.js';
 import type { AuthenticatedSocket, ClientToServerEvents, ServerToClientEvents } from '@/types/index.js';
 
@@ -28,7 +28,7 @@ export class SocketService {
 
         logger.debug('Socket authenticated successfully', {
           socketId: socket.id,
-          userId: socket.user.userId,
+          userId: socket.user?.userId,
         });
 
         next();
@@ -157,23 +157,12 @@ export class SocketService {
 
   private async updateUserSocketConnection(userId: string, socketId: string): Promise<void> {
     try {
-      let userState = await UserState.findByUserId(userId);
-      
-      if (!userState) {
-        userState = new UserState({
-          userId,
-          state: 'idle',
-          lastActive: new Date(),
-          isActive: true,
-          socketId,
-        });
-      } else {
-        userState.socketId = socketId;
-        userState.isActive = true;
-        userState.lastActive = new Date();
-      }
-
-      await userState.save();
+      await supabase.from('user_states').upsert({
+        user_id: userId,
+        socket_id: socketId,
+        is_active: true,
+        last_active: new Date().toISOString()
+      }, { onConflict: 'user_id' });
     } catch (error) {
       logger.error('Failed to update user socket connection:', error);
       throw error;
@@ -188,10 +177,12 @@ export class SocketService {
     await socket.join(roomId);
 
     // Update user state
-    const userState = await UserState.findByUserId(userId);
-    if (userState) {
-      await userState.joinRoom(roomId);
-    }
+    await supabase.from('user_states').update({
+      state: 'in-session',
+      room_id: roomId,
+      queue_joined_at: null,
+      last_active: new Date().toISOString()
+    }).eq('user_id', userId);
 
     logger.info('User joined room', {
       userId,
@@ -211,10 +202,13 @@ export class SocketService {
     if (!userId) throw new Error('User not authenticated');
 
     // Update user state to waiting
-    const userState = await UserState.findByUserId(userId);
-    if (userState) {
-      await userState.joinQueue(queueType, 'Easy'); // Default difficulty for now
-    }
+    await supabase.from('user_states').update({
+      state: 'waiting',
+      mode: queueType,
+      difficulty: 'Easy', // Default
+      queue_joined_at: new Date().toISOString(),
+      last_active: new Date().toISOString()
+    }).eq('user_id', userId);
 
     logger.info('User joined queue', {
       userId,
@@ -229,13 +223,17 @@ export class SocketService {
     });
   }
 
-  private async handleRejoinQueue(socket: AuthenticatedSocket, queueType: string): Promise<void> {
+  private async handleRejoinQueue(socket: AuthenticatedSocket, _queueType: string): Promise<void> {
     const userId = socket.user?.userId;
     if (!userId) throw new Error('User not authenticated');
 
     // Check if user is already in queue
-    const userState = await UserState.findByUserId(userId);
-    
+    const { data: userState } = await supabase
+      .from('user_states')
+      .select('state, mode, difficulty')
+      .eq('user_id', userId)
+      .single();
+
     if (userState && userState.state === 'waiting') {
       // User is already in queue
       socket.emit('queueRejoined', {
@@ -344,12 +342,10 @@ export class SocketService {
 
     try {
       // Update user state
-      const userState = await UserState.findByUserId(userId);
-      if (userState) {
-        userState.socketId = undefined;
-        userState.isActive = false;
-        await userState.save();
-      }
+      await supabase.from('user_states').update({
+        socket_id: null,
+        is_active: false
+      }).eq('user_id', userId);
 
       // Remove from connection mappings
       this.connectedUsers.delete(userId);

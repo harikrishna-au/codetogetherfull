@@ -1,4 +1,5 @@
 
+import { ClerkProvider } from "@clerk/clerk-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,37 +22,45 @@ const queryClient = new QueryClient();
 
 
 
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error("Missing Publishable Key")
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <SocketProvider>
-          <SessionAuthProvider>
-            <BrowserRouter
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}
-            >
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/matchmaking" element={
-                  <MatchmakingProvider>
-                    <Matchmaking />
-                  </MatchmakingProvider>
-                } />
-                <Route path="/session/:roomId" element={<CodingSession />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-            <NoInternetWidget />
-          </SessionAuthProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </TooltipProvider>
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <SocketProvider>
+            <SessionAuthProvider>
+              <BrowserRouter
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true,
+                }}
+              >
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/matchmaking" element={
+                    <MatchmakingProvider>
+                      <Matchmaking />
+                    </MatchmakingProvider>
+                  } />
+                  <Route path="/session/:roomId" element={<CodingSession />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+              <NoInternetWidget />
+            </SessionAuthProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </ClerkProvider>
   </QueryClientProvider>
 );
 

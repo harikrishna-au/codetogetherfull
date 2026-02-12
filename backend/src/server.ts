@@ -8,8 +8,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 
 import { env, corsConfig, rateLimitConfig } from '@/config/env.js';
-import { connectDatabase, checkDatabaseHealth, initializeIndexes } from '@/config/database.js';
-import { initializeFirebase } from '@/config/firebase.js';
+import { supabase } from '@/config/supabase.js';
 import { logger, requestLogger } from '@/utils/logger.js';
 import { globalErrorHandler } from '@/utils/errors.js';
 
@@ -20,7 +19,6 @@ import sessionRoutes from '@/routes/session.js';
 
 // Import services
 import { SocketService } from '@/services/SocketService.js';
-import { UserState } from '@/models/UserState.js';
 
 // Create Express app
 const app = express();
@@ -52,14 +50,15 @@ app.use(requestLogger);
 
 // Health check endpoint
 app.get('/health', async (_req, res) => {
-  const dbHealth = await checkDatabaseHealth();
-  
+  // Check Supabase connection
+  const { error } = await supabase.from('users').select('count', { count: 'exact', head: true });
+
   res.json({
-    status: dbHealth ? 'ok' : 'degraded',
+    status: !error ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: env.NODE_ENV,
-    database: dbHealth ? 'connected' : 'disconnected',
+    database: !error ? 'connected' : 'disconnected',
   });
 });
 
@@ -81,12 +80,18 @@ app.get('/api/status', (_req, res) => {
 // Active users endpoint (public)
 app.get('/api/active-users', async (_req, res) => {
   try {
-    const activeUsers = await UserState.find({ isActive: true });
+    const { data: activeUsers, error } = await supabase
+      .from('user_states')
+      .select('user_id, last_active')
+      .eq('is_active', true);
+
+    if (error) throw error;
+
     res.json({
       success: true,
       activeUsers: activeUsers.map((user: any) => ({
-        userId: user.userId,
-        lastActive: user.lastActive,
+        userId: user.user_id,
+        lastActive: user.last_active,
       })),
     });
   } catch (error) {
@@ -96,9 +101,6 @@ app.get('/api/active-users', async (_req, res) => {
     });
   }
 });
-
-// Initialize Socket.IO service
-let socketService: SocketService;
 
 // Global error handler
 app.use(globalErrorHandler);
@@ -116,18 +118,9 @@ app.use('*', (_req, res) => {
 // Initialize database and start server
 const startServer = async () => {
   try {
-    // Initialize Firebase (optional)
-    initializeFirebase();
-    
-    // Connect to database
-    await connectDatabase();
-    
-    // Initialize database indexes
-    await initializeIndexes();
-    
     // Initialize Socket.IO service
-    socketService = new SocketService(io);
-    
+    new SocketService(io);
+
     // Start server
     const PORT = env.PORT || 4000;
     server.listen(PORT, () => {

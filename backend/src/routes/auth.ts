@@ -7,21 +7,10 @@ import { validateRequest } from '@/middleware/validation.js';
 const router = Router();
 
 // Validation rules
-const loginValidation = [
-  body('idToken')
-    .notEmpty()
-    .withMessage('Firebase ID token is required')
-    .isString()
-    .withMessage('ID token must be a string'),
-];
+// Validation rules
+// const loginValidation = ... (removed)
+// const refreshTokenValidation = ... (removed)
 
-const refreshTokenValidation = [
-  body('token')
-    .notEmpty()
-    .withMessage('Token is required')
-    .isString()
-    .withMessage('Token must be a string'),
-];
 
 const preferencesValidation = [
   body('preferences')
@@ -38,13 +27,13 @@ const preferencesValidation = [
 ];
 
 // Public routes
-router.post('/login', loginValidation, validateRequest, AuthController.login);
-router.post('/refresh-token', refreshTokenValidation, validateRequest, AuthController.refreshToken);
+// router.post('/login', loginValidation, validateRequest, AuthController.login); // Handled by Clerk
+// router.post('/refresh-token', refreshTokenValidation, validateRequest, AuthController.refreshToken); // Handled by Clerk
 
 // Protected routes
 router.use(authenticateToken); // All routes below require authentication
 
-router.post('/logout', AuthController.logout);
+// router.post('/logout', AuthController.logout); // Handled by Clerk
 router.get('/profile', AuthController.getProfile);
 router.get('/validate-session', AuthController.validateSession);
 router.get('/stats', AuthController.getUserStats);

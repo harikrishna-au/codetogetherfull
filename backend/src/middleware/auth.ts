@@ -1,8 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthService } from '@/services/AuthService.js';
+import { createClerkClient } from '@clerk/clerk-sdk-node';
 import { logger } from '@/utils/logger.js';
 import { AuthenticationError, sendErrorResponse } from '@/utils/errors.js';
 import type { AuthenticatedRequest } from '@/types/index.js';
+import { env } from '@/config/env.js';
+import { AuthService } from '@/services/AuthService.js';
+
+const clerkClient = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
 
 // Extract token from request
 const extractToken = (req: Request): string | null => {
@@ -29,24 +33,38 @@ export const authenticateToken = async (
 ): Promise<void> => {
   try {
     const token = extractToken(req);
-    
+
     if (!token) {
       throw new AuthenticationError('No authentication token provided');
     }
 
-    // Validate session
-    const { user, dbUser } = await AuthService.validateSession(token);
-    
-    // Attach user info to request
-    req.user = user;
-    req.dbUser = dbUser;
+    try {
+      // Verify token with Clerk
+      const tokenPayload = await clerkClient.verifyToken(token);
 
-    logger.debug('User authenticated successfully', {
-      userId: user.userId,
-      email: user.email,
-    });
+      // Get user details from our DB (sync if needed)
+      // We pass the Clerk User ID (sub)
+      // AuthService needs to be updated to handle this
+      const { user, dbUser } = await AuthService.validateSession(tokenPayload.sub);
 
-    next();
+      // Attach user info to request
+      req.user = user;
+      req.dbUser = dbUser;
+
+      // Also attach Clerk Auth info if useful
+      // req.auth = tokenPayload; 
+
+      logger.debug('User authenticated successfully', {
+        userId: user.userId,
+        email: user.email,
+      });
+
+      next();
+    } catch (err) {
+      // If verifyToken fails
+      throw new AuthenticationError('Invalid authentication token');
+    }
+
   } catch (error) {
     logger.warn('Authentication failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -58,28 +76,32 @@ export const authenticateToken = async (
   }
 };
 
-// Optional authentication middleware (doesn't fail if no token)
+// Optional authentication middleware
 export const optionalAuth = async (
   req: AuthenticatedRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
     const token = extractToken(req);
-    
+
     if (token) {
-      const { user, dbUser } = await AuthService.validateSession(token);
-      req.user = user;
-      req.dbUser = dbUser;
+      try {
+        const tokenPayload = await clerkClient.verifyToken(token);
+        const { user, dbUser } = await AuthService.validateSession(tokenPayload.sub);
+        req.user = user;
+        req.dbUser = dbUser;
+      } catch (e) {
+        // Ignore invalid token for optional auth
+      }
     }
 
     next();
   } catch (error) {
-    // Log the error but don't fail the request
     logger.debug('Optional authentication failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     next();
   }
 };
@@ -92,13 +114,12 @@ export const requireAdmin = async (
 ): Promise<void> => {
   try {
     // First authenticate the user
-    await authenticateToken(req, res, () => {});
-    
+    await authenticateToken(req, res, () => { });
+
     // Check if user has admin privileges
-    // For now, we'll use a simple email-based check
-    // In production, you might want to use Firebase custom claims
     const adminEmails = ['admin@codetogether.com']; // Add your admin emails
-    
+    // Or check Clerk metadata
+
     if (!req.user || !adminEmails.includes(req.user.email)) {
       throw new AuthenticationError('Admin access required');
     }
@@ -119,13 +140,14 @@ export const requireAdmin = async (
   }
 };
 
+
 // Rate limiting by user
 export const rateLimitByUser = (maxRequests: number, windowMs: number) => {
   const userRequests = new Map<string, { count: number; resetTime: number }>();
 
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     const userId = req.user?.userId;
-    
+
     if (!userId) {
       return next();
     }
@@ -149,12 +171,13 @@ export const rateLimitByUser = (maxRequests: number, windowMs: number) => {
         maxRequests,
       });
 
-      return res.status(429).json({
+      res.status(429).json({
         success: false,
         error: 'Too many requests',
         code: 'RATE_LIMIT_EXCEEDED',
         retryAfter: Math.ceil((userLimit.resetTime - now) / 1000),
       });
+      return;
     }
 
     userLimit.count++;
@@ -169,8 +192,9 @@ export const authenticateSocket = async (token: string): Promise<any> => {
       throw new AuthenticationError('No authentication token provided');
     }
 
-    const { user, dbUser } = await AuthService.validateSession(token);
-    
+    const tokenPayload = await clerkClient.verifyToken(token);
+    const { user, dbUser } = await AuthService.validateSession(tokenPayload.sub);
+
     logger.debug('Socket authenticated successfully', {
       userId: user.userId,
       email: user.email,
@@ -181,7 +205,7 @@ export const authenticateSocket = async (token: string): Promise<any> => {
     logger.warn('Socket authentication failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     throw error;
   }
 };

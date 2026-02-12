@@ -14,20 +14,20 @@ import ActiveUserHeartbeat from '@/components/ActiveUserHeartbeat';
 const Index = () => {
   const [selectedMode, setSelectedMode] = useState<'friendly' | 'challenge' | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard' | null>(null);
-  const { user } = useSessionAuth();
+  const { user, sessionToken } = useSessionAuth();
   const navigate = useNavigate();
 
   const [userState, setUserState] = useState(null);
   useEffect(() => {
-    if (!user) return;
-    fetchUserState(user.uid).then(state => {
+    if (!user || !sessionToken) return;
+    fetchUserState(user.id, sessionToken).then(state => {
       setUserState(state);
       if (state && state.state === 'waiting' && state.mode && state.difficulty) {
         // Redirect to matchmaking page to show waiting screen
         navigate('/matchmaking', { state: { mode: state.mode, difficulty: state.difficulty } });
       }
     });
-  }, [user, navigate]);
+  }, [user, sessionToken, navigate]);
 
   useEffect(() => {
     if (
@@ -41,21 +41,21 @@ const Index = () => {
 
   return (
     <>
-  {user && <ActiveUserHeartbeat userId={user.uid} />}
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-    <Header />
-    <div className="flex flex-col items-center justify-center pt-8">
-      <ActiveUserCount />
-    </div>
-    <HeroSection
-      selectedMode={selectedMode}
-      setSelectedMode={setSelectedMode}
-      selectedDifficulty={selectedDifficulty}
-      setSelectedDifficulty={setSelectedDifficulty}
-    />
-    <FeaturesSection />
-    <Footer />
-  </div>
+      {user && <ActiveUserHeartbeat userId={user.id} />}
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <Header />
+        <div className="flex flex-col items-center justify-center pt-8">
+          <ActiveUserCount />
+        </div>
+        <HeroSection
+          selectedMode={selectedMode}
+          setSelectedMode={setSelectedMode}
+          selectedDifficulty={selectedDifficulty}
+          setSelectedDifficulty={setSelectedDifficulty}
+        />
+        <FeaturesSection />
+        <Footer />
+      </div>
     </>
   );
 };

@@ -1,116 +1,68 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import { API_ENDPOINTS } from '@/lib/api';
+import { useAuth, useUser } from '@clerk/clerk-react';
 
 interface SessionAuthContextValue {
-  user: User | null;
+  user: any;
   sessionToken: string | null;
   loading: boolean;
-  loginWithSession: () => Promise<void>;
-  logoutWithSession: () => Promise<void>;
+  loginWithSession: () => Promise<void>; // Deprecated/No-op
+  logoutWithSession: () => Promise<void>; // Deprecated/No-op
 }
 
 const SessionAuthContext = createContext<SessionAuthContextValue>({
   user: null,
   sessionToken: null,
   loading: true,
-  loginWithSession: async () => {},
-  logoutWithSession: async () => {},
+  loginWithSession: async () => { },
+  logoutWithSession: async () => { },
 });
 
 export const SessionAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isLoaded: userLoaded } = useUser();
+  const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [backendError, setBackendError] = useState(false);
+  const [tokenLoading, setTokenLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(getAuth(), async (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
-      if (firebaseUser) {
+    if (!authLoaded) return;
+
+    const fetchToken = async () => {
+      if (isSignedIn) {
         try {
-          const idToken = await firebaseUser.getIdToken();
-          const res = await fetch(API_ENDPOINTS.SESSION_LOGIN, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-            credentials: 'include',
-          });
-          if (res.ok) {
-            setSessionToken('cookie');
-            setBackendError(false);
-          } else {
-            setSessionToken(null);
-            setBackendError(true);
-          }
-        } catch (err) {
+          const token = await getToken();
+          setSessionToken(token);
+          // console.log("Clerk Token Retrieved");
+        } catch (error) {
+          console.error("Error fetching Clerk token:", error);
           setSessionToken(null);
-          setBackendError(true);
         }
-        console.log('Session details:', {
-          user: firebaseUser,
-          sessionToken: 'cookie',
-          sessionId: firebaseUser.uid,
-        });
       } else {
         setSessionToken(null);
       }
-    });
-    return () => unsubscribe();
-  }, []);
+      setTokenLoading(false);
+    };
 
-  const loginWithSession = async () => {
-    const auth = getAuth();
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser) throw new Error('Not signed in');
-    const idToken = await firebaseUser.getIdToken();
-    const res = await fetch(API_ENDPOINTS.SESSION_LOGIN, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken }),
-      credentials: 'include',
-    });
-    if (!res.ok) throw new Error('Session login failed');
-    setSessionToken('cookie');
-    console.log('Session details:', {
-      user: firebaseUser,
-      sessionToken: 'cookie',
-      sessionId: firebaseUser.uid,
-    });
-  };
+    fetchToken();
+    // Refresh token periodically? Clerk handles this, but we need to call getToken() to get fresh one.
+    // Ideally we should use a mechanism to get token on demand, but context exposing 'sessionToken' string implies it's static-ish.
+    // For socket, we probably need a valid one at connection time.
 
-  const logoutWithSession = async () => {
-    await fetch(API_ENDPOINTS.SESSION_LOGOUT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-    });
-    setSessionToken(null);
-    await getAuth().signOut();
-  };
+    // Set up an interval to refresh token if needed, or just let it be.
+    const interval = setInterval(fetchToken, 5 * 60 * 1000); // 5 minutes
+    return () => clearInterval(interval);
+
+  }, [isSignedIn, authLoaded, getToken]);
+
+  const loading = !userLoaded || !authLoaded || tokenLoading;
 
   return (
-    <SessionAuthContext.Provider value={{ user, sessionToken, loading, loginWithSession, logoutWithSession }}>
-      {backendError && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.85)',
-          color: 'white',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '2rem',
-          flexDirection: 'column',
-        }}>
-          <div>Site is not working. Please try again later.</div>
-        </div>
-      )}
+    <SessionAuthContext.Provider value={{
+      user: user || null,
+      sessionToken,
+      loading,
+      loginWithSession: async () => { }, // No-op
+      logoutWithSession: async () => { } // No-op
+    }}>
       {children}
     </SessionAuthContext.Provider>
   );

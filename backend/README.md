@@ -4,7 +4,7 @@ A Node.js/Express backend server for the CodeTogether collaborative coding platf
 
 ## Features
 
-- 🔐 Firebase Authentication with JWT sessions
+- 🔐 Authentication via Clerk (replaces Firebase)
 - 🚀 Real-time collaboration with Socket.IO
 - 🎯 Smart matchmaking system
 - 📝 Question and test case management
@@ -55,9 +55,9 @@ Copy `.env.example` to `.env` and configure:
 
 ### Required Variables
 - `MONGODB_URI` - MongoDB connection string
-- `FIREBASE_PROJECT_ID` - Firebase project ID
-- `FIREBASE_PRIVATE_KEY` - Firebase service account private key
-- `FIREBASE_CLIENT_EMAIL` - Firebase service account email
+- `CLERK_SECRET_KEY` - Clerk Secret Key (from Clerk Dashboard)
+- `CLERK_PUBLISHABLE_KEY` - Clerk Publishable Key
+
 - `JWT_SECRET` - Secret key for JWT tokens (min 32 characters)
 
 ### Optional Variables

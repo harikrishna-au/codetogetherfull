@@ -16,7 +16,7 @@ interface MatchmakingContextType {
 const MatchmakingContext = createContext<MatchmakingContextType | undefined>(undefined);
 
 export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useSessionAuth();
+  const { user, sessionToken } = useSessionAuth();
   // Restore mode/difficulty from sessionStorage if present
   const initialMode = window.sessionStorage.getItem('queueMode') || 'friendly';
   const initialDifficulty = window.sessionStorage.getItem('queueDifficulty') || 'easy';
@@ -34,13 +34,11 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
     setPhase('matching');
     setMatchFound(false);
     window.sessionStorage.setItem('inQueue', '1');
-    if (user) {
-      user.getIdToken().then(token => {
-        const socket = getSocket(token);
-        socketRef.current = socket;
-        // Use mode as the queue type: 'friendly' or 'challenge'
-        socket.emit('joinQueue', { type: mode });
-      });
+    if (user && sessionToken) {
+      const socket = getSocket(sessionToken);
+      socketRef.current = socket;
+      // Use mode as the queue type: 'friendly' or 'challenge'
+      socket.emit('joinQueue', { type: mode });
     }
   };
 
@@ -60,10 +58,10 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
 
   // Effect: handle socket events and rejoin logic
   useEffect(() => {
-    if (!user) return;
+    if (!user || !sessionToken) return;
     let cleanupFns: (() => void)[] = [];
     // On mount, fetch user state from backend API
-    fetchUserState(user.uid).then(state => {
+    fetchUserState(user.id, sessionToken).then(state => {
       setUserState(state);
       if (state?.state === 'waiting' && state.mode && state.difficulty) {
         setMode(state.mode);
@@ -85,51 +83,51 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
         setPhase('matching');
       }
     });
-    user.getIdToken().then(token => {
-      const socket = getSocket(token);
-      socketRef.current = socket;
 
-      // Listen for match found
-      const onMatchFound = () => {
-        setMatchFound(true);
-        setTimeout(() => setPhase('countdown'), 1000);
-        window.sessionStorage.removeItem('inQueue');
-      };
-      socket.on('matchFound', onMatchFound);
-      cleanupFns.push(() => socket.off('matchFound', onMatchFound));
+    const socket = getSocket(sessionToken);
+    socketRef.current = socket;
 
-      // Listen for queue rejoin result
-      const onQueueRejoined = (data: { waiting: boolean, mode?: string, difficulty?: string }) => {
-        if (data.waiting) {
-          if (data.mode) setMode(data.mode);
-          if (data.difficulty) setDifficulty(data.difficulty);
-          setMatchFound(false);
-          setPhase('matching');
-          window.sessionStorage.setItem('inQueue', '1');
-        } else {
-          // Not in queue, emit joinQueue
-          socket.emit('joinQueue', {});
-          window.sessionStorage.setItem('inQueue', '1');
-        }
-      };
-      socket.on('queueRejoined', onQueueRejoined);
-      cleanupFns.push(() => socket.off('queueRejoined', onQueueRejoined));
+    // Listen for match found
+    const onMatchFound = () => {
+      setMatchFound(true);
+      setTimeout(() => setPhase('countdown'), 1000);
+      window.sessionStorage.removeItem('inQueue');
+    };
+    socket.on('matchFound', onMatchFound);
+    cleanupFns.push(() => socket.off('matchFound', onMatchFound));
 
-      // On mount, try to rejoin if returning
-      if (window.sessionStorage.getItem('inQueue') === '1') {
-        // Use mode/difficulty from sessionStorage if present
-        const rejoinMode = window.sessionStorage.getItem('queueMode') || mode;
-        const rejoinDifficulty = window.sessionStorage.getItem('queueDifficulty') || difficulty;
-        setMode(rejoinMode);
-        setDifficulty(rejoinDifficulty);
-  socket.emit('rejoinQueue');
-      } else {
-  socket.emit('joinQueue', {});
+    // Listen for queue rejoin result
+    const onQueueRejoined = (data: { waiting: boolean, mode?: string, difficulty?: string }) => {
+      if (data.waiting) {
+        if (data.mode) setMode(data.mode);
+        if (data.difficulty) setDifficulty(data.difficulty);
+        setMatchFound(false);
+        setPhase('matching');
         window.sessionStorage.setItem('inQueue', '1');
-        window.sessionStorage.setItem('queueMode', mode);
-        window.sessionStorage.setItem('queueDifficulty', difficulty);
+      } else {
+        // Not in queue, emit joinQueue
+        socket.emit('joinQueue', {});
+        window.sessionStorage.setItem('inQueue', '1');
       }
-    });
+    };
+    socket.on('queueRejoined', onQueueRejoined);
+    cleanupFns.push(() => socket.off('queueRejoined', onQueueRejoined));
+
+    // On mount, try to rejoin if returning
+    if (window.sessionStorage.getItem('inQueue') === '1') {
+      // Use mode/difficulty from sessionStorage if present
+      const rejoinMode = window.sessionStorage.getItem('queueMode') || mode;
+      const rejoinDifficulty = window.sessionStorage.getItem('queueDifficulty') || difficulty;
+      setMode(rejoinMode);
+      setDifficulty(rejoinDifficulty);
+      socket.emit('rejoinQueue');
+    } else {
+      socket.emit('joinQueue', {});
+      window.sessionStorage.setItem('inQueue', '1');
+      window.sessionStorage.setItem('queueMode', mode);
+      window.sessionStorage.setItem('queueDifficulty', difficulty);
+    }
+
     return () => {
       cleanupFns.forEach(fn => fn());
       if (socketRef.current) {
@@ -144,7 +142,7 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, sessionToken]);
 
   // Effect: handle countdown
   useEffect(() => {

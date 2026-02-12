@@ -2,12 +2,8 @@ import { Request } from 'express';
 import { Socket } from 'socket.io';
 
 // User types
-export interface FirebaseUser {
-  uid: string;
-  email: string;
-  displayName?: string;
-  emailVerified: boolean;
-}
+// User types
+
 
 export interface JWTPayload {
   userId: string;
@@ -108,6 +104,11 @@ export interface UserState {
   isActive: boolean;
   queueJoinedAt?: Date;
   socketId?: string;
+  // Instance methods
+  joinRoom?: (roomId: string) => Promise<any>;
+  joinQueue?: (mode: string, difficulty: string) => Promise<any>;
+  leaveQueue?: () => Promise<any>;
+  leaveRoom?: () => Promise<any>;
 }
 
 export interface User {

@@ -31,7 +31,7 @@ const Matchmaking = () => {
   // Check if user already has an active session and redirect them
   useEffect(() => {
     if (!user) return;
-    
+
     // Don't redirect if we just came from a session that failed
     const fromSession = sessionStorage.getItem('fromSession');
     if (fromSession) {
@@ -39,30 +39,30 @@ const Matchmaking = () => {
       console.log('[Matchmaking] Just came from failed session, not redirecting');
       return;
     }
-    
+
     let mounted = true;
-    
+
     const checkActiveSession = async () => {
       try {
-        const state = await fetchUserState(user.uid);
+        const state = await fetchUserState(user.id);
         if (!mounted) return;
-        
+
         // Only redirect if user is explicitly in a room or matched state
         if (state && (state.state === 'matched' || state.state === 'in-session') && state.roomId && state.roomId.trim() !== '') {
           console.log('[Matchmaking] User has active session, redirecting to room:', state.roomId);
-          navigate(`/session/${state.roomId}`, { 
+          navigate(`/session/${state.roomId}`, {
             state: { mode: state.mode, difficulty: state.difficulty },
-            replace: true 
+            replace: true
           });
         }
       } catch (err) {
         console.error('[Matchmaking] Error checking user state:', err);
       }
     };
-    
+
     // Add a small delay to prevent immediate redirect on page load
     const timeoutId = setTimeout(checkActiveSession, 1000);
-    
+
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
@@ -172,78 +172,78 @@ const Matchmaking = () => {
 
   return (
     <>
-      {user && <ActiveUserHeartbeat userId={user.uid} />}
+      {user && <ActiveUserHeartbeat userId={user.id} />}
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center px-4">
-      <Card className="bg-white/5 border-white/20 max-w-lg w-full">
-        <CardContent className="p-8 text-center">
-          {phase === 'matching' ? (
-            <>
-              {/* Decorative multi-ring spinner */}
-              <div className="mb-8">
-                <div className="relative mx-auto w-28 h-28">
-                  {/* outer ring */}
-                  <div
-                    className="absolute inset-0 rounded-full border-2 border-white/10 border-t-purple-400 animate-spin"
-                    style={{ animationDuration: '1.2s' }}
-                  />
-                  {/* middle ring */}
-                  <div
-                    className="absolute inset-2 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin"
-                    style={{ animationDuration: '1.8s' }}
-                  />
-                  {/* inner ring */}
-                  <div
-                    className="absolute inset-4 rounded-full border-2 border-white/10 border-t-pink-400 animate-spin"
-                    style={{ animationDuration: '2.4s' }}
-                  />
-                  {/* glow */}
-                  <div className="absolute inset-6 rounded-full bg-purple-500/20 blur-2xl" />
-                  <span className="sr-only">Matching players…</span>
-                </div>
-              </div>
-
-              {/* Minimal helper text */}
-              <div className="space-y-1 mb-4">
-                <p className="text-sm text-gray-300">Matching players…</p>
-                <div className="flex items-center justify-center space-x-2 text-xs text-gray-400">
-                  <span className="capitalize">{mode}</span>
-                  <span>•</span>
-                  <span className="capitalize">{difficulty}</span>
-                </div>
-                <p className="text-xs text-gray-500">Queue times vary based on availability.</p>
-              </div>
-              {/* Only show Cancel button if not matched */}
-              {!matchedRoomId && (
-                <button
-                  className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-                  onClick={handleCancelQueue}
-                >
-                  Cancel
-                </button>
-              )}
-
-              {matchFound && (
-                <div className="animate-fade-in">
-                  <div className="flex items-center justify-center space-x-2 text-green-400 mb-4">
-                    <Zap className="w-5 h-5" />
-                    <span className="font-semibold">Match Found!</span>
+        <Card className="bg-white/5 border-white/20 max-w-lg w-full">
+          <CardContent className="p-8 text-center">
+            {phase === 'matching' ? (
+              <>
+                {/* Decorative multi-ring spinner */}
+                <div className="mb-8">
+                  <div className="relative mx-auto w-28 h-28">
+                    {/* outer ring */}
+                    <div
+                      className="absolute inset-0 rounded-full border-2 border-white/10 border-t-purple-400 animate-spin"
+                      style={{ animationDuration: '1.2s' }}
+                    />
+                    {/* middle ring */}
+                    <div
+                      className="absolute inset-2 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin"
+                      style={{ animationDuration: '1.8s' }}
+                    />
+                    {/* inner ring */}
+                    <div
+                      className="absolute inset-4 rounded-full border-2 border-white/10 border-t-pink-400 animate-spin"
+                      style={{ animationDuration: '2.4s' }}
+                    />
+                    {/* glow */}
+                    <div className="absolute inset-6 rounded-full bg-purple-500/20 blur-2xl" />
+                    <span className="sr-only">Matching players…</span>
                   </div>
-                  <p className="text-gray-300 text-sm">Preparing your coding session...</p>
                 </div>
-              )}
-            </>
-          ) : (
-            <div className="animate-fade-in">
-              <Code className="w-20 h-20 text-green-400 mx-auto mb-6" />
-              <h2 className="text-4xl font-bold text-white mb-4">Get Ready!</h2>
-              <div className="text-6xl font-bold text-green-400 mb-4 animate-pulse">
-                {countdown}
+
+                {/* Minimal helper text */}
+                <div className="space-y-1 mb-4">
+                  <p className="text-sm text-gray-300">Matching players…</p>
+                  <div className="flex items-center justify-center space-x-2 text-xs text-gray-400">
+                    <span className="capitalize">{mode}</span>
+                    <span>•</span>
+                    <span className="capitalize">{difficulty}</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Queue times vary based on availability.</p>
+                </div>
+                {/* Only show Cancel button if not matched */}
+                {!matchedRoomId && (
+                  <button
+                    className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                    onClick={handleCancelQueue}
+                  >
+                    Cancel
+                  </button>
+                )}
+
+                {matchFound && (
+                  <div className="animate-fade-in">
+                    <div className="flex items-center justify-center space-x-2 text-green-400 mb-4">
+                      <Zap className="w-5 h-5" />
+                      <span className="font-semibold">Match Found!</span>
+                    </div>
+                    <p className="text-gray-300 text-sm">Preparing your coding session...</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="animate-fade-in">
+                <Code className="w-20 h-20 text-green-400 mx-auto mb-6" />
+                <h2 className="text-4xl font-bold text-white mb-4">Get Ready!</h2>
+                <div className="text-6xl font-bold text-green-400 mb-4 animate-pulse">
+                  {countdown}
+                </div>
+                <p className="text-gray-300">Session starting...</p>
               </div>
-              <p className="text-gray-300">Session starting...</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </>
   );
