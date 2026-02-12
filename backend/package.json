@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "tsx src/server.ts",
     "seed": "tsx src/scripts/seedDatabase.ts",
+    "seed:problems": "tsx src/scripts/seedProblems.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src/**/*.ts",
