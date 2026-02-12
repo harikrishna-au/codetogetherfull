@@ -113,14 +113,14 @@ export default function AddQuestion({ nextId }: { nextId: string }) {
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Question Details</h2>
 
           {/* JSON Import */}
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-            <label className="block text-sm font-medium text-blue-900 mb-2">
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Import from JSON (Optional)
             </label>
             <textarea
               value={jsonInput}
               onChange={(e) => setJsonInput(e.target.value)}
-              className="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-black focus:border-black text-sm"
               rows={4}
               placeholder="Paste JSON data here to auto-fill the form..."
             />
@@ -129,7 +129,7 @@ export default function AddQuestion({ nextId }: { nextId: string }) {
             )}
             <div className="mt-2">
               <Button
-                variant="primary"
+                variant="secondary"
                 size="sm"
                 onClick={handlePasteJson}
                 type="button"
@@ -237,7 +237,7 @@ export default function AddQuestion({ nextId }: { nextId: string }) {
 
             <Button
               type="submit"
-              variant="success"
+              variant="primary"
               className="w-full"
               disabled={loading}
             >

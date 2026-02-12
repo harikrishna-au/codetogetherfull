@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import Card from './Card';
@@ -40,8 +41,8 @@ export default function AddMajorTestCases({ nextId }: { nextId: string }) {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Add Major Test Cases</h2>
-                <Badge variant="info" size="sm">Separate API</Badge>
+                <h2 className="text-lg font-medium text-gray-900">Add Major Test Cases</h2>
+                <Badge variant="default" size="sm">Separate API</Badge>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -60,7 +61,7 @@ export default function AddMajorTestCases({ nextId }: { nextId: string }) {
                     <textarea
                         value={testCases}
                         onChange={(e) => setTestCases(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-black focus:border-black font-mono text-sm"
                         rows={5}
                         placeholder='[{"input":{},"output":""}]'
                     />
@@ -73,6 +74,7 @@ export default function AddMajorTestCases({ nextId }: { nextId: string }) {
                     <Button
                         type="submit"
                         disabled={loading}
+                        variant="primary"
                         className="w-full"
                     >
                         {loading ? 'Saving...' : 'Save Major Test Cases'}
@@ -80,7 +82,9 @@ export default function AddMajorTestCases({ nextId }: { nextId: string }) {
                 </div>
 
                 {result && (
-                    <div className={`p-3 rounded-md text-sm ${result.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                    <div className={`p-3 rounded-md text-sm border ${result.type === 'success'
+                            ? 'bg-emerald-50 text-emerald-900 border-emerald-100'
+                            : 'bg-red-50 text-red-900 border-red-100'
                         }`}>
                         {result.message}
                     </div>

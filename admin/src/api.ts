@@ -1,3 +1,4 @@
+
 // API service for admin panel
 const API_BASE_URL = '/admin-api/admin';
 
@@ -17,7 +18,7 @@ interface Question {
   hints?: string[];
   starterCode?: any;
   compileTestCases?: any;
-  majorTestCases?: any;
+  majorTestCases?: any; // Kept for compatibility
   createdAt?: string;
   updatedAt?: string;
 }
@@ -55,7 +56,7 @@ async function apiRequest<T = any>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-  
+
   try {
     const response = await fetch(url, {
       headers: {
@@ -102,13 +103,13 @@ export const questionApi = {
 
   // Get next question ID
   async getNextId(): Promise<string> {
-    const response = await apiRequest<{ nextId: string }>('/next-question-id');
+    const response = await apiRequest<{ nextId: string }>('/questions/next-id');
     return response.nextId || 'q1';
   },
 
   // Initialize sample questions
   async initializeSample(): Promise<{ totalQuestions: number }> {
-    const response = await apiRequest<{ totalQuestions: number }>('/api/questions/initialize', {
+    const response = await apiRequest<{ totalQuestions: number }>('/questions/initialize', {
       method: 'POST',
     });
     return { totalQuestions: response.totalQuestions || 0 };
@@ -142,7 +143,7 @@ export const queueApi = {
 
   // Clear all queues
   async clearAll(): Promise<void> {
-    await apiRequest('/clear-queues', {
+    await apiRequest('/queue/clear', {
       method: 'POST',
     });
   },
@@ -189,7 +190,7 @@ export const userApi = {
   // Get active users count
   async getActiveCount(): Promise<number> {
     try {
-      const response = await apiRequest<{ activeUsers: any[] }>('/api/active-users');
+      const response = await apiRequest<{ activeUsers: any[] }>('/active-users');
       return response.activeUsers?.length || 0;
     } catch (error) {
       console.error('Failed to fetch active users:', error);
@@ -209,7 +210,7 @@ export const statsApi = {
   }> {
     try {
       const [questionsResponse, activeUsersCount, queueStats] = await Promise.all([
-        apiRequest<{ totalQuestions: number }>('/api/questions/count'),
+        apiRequest<{ totalQuestions: number }>('/questions/count'),
         userApi.getActiveCount(),
         queueApi.getStats(),
       ]);

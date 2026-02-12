@@ -22,7 +22,7 @@ export default defineConfig({
         target: 'http://localhost:4000',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/admin-api/, '/admin-api'),
+        rewrite: (path) => path.replace(/^\/admin-api\/admin/, '/api'),
       },
       '/api': {
         target: 'http://localhost:4000',

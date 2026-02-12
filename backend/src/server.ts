@@ -16,6 +16,10 @@ import { globalErrorHandler } from '@/utils/errors.js';
 import authRoutes from '@/routes/auth.js';
 import userRoutes from '@/routes/users.js';
 import sessionRoutes from '@/routes/session.js';
+import questionsRouter from '@/routes/questions.js';
+import testCasesRouter from '@/routes/testcases.js';
+import queueRouter from '@/routes/queue.js';
+import roomsRouter from '@/routes/rooms.js';
 
 // Import services
 import { SocketService } from '@/services/SocketService.js';
@@ -66,6 +70,10 @@ app.get('/health', async (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/session', sessionRoutes);
+app.use('/api/questions', questionsRouter);
+app.use('/api/testcases', testCasesRouter);
+app.use('/api/queue', queueRouter);
+app.use('/api/rooms', roomsRouter);
 
 // Basic API routes
 app.get('/api/status', (_req, res) => {

@@ -4,6 +4,7 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
 import Input from '../components/Input';
+import { FileText } from 'lucide-react';
 
 interface Question {
   id?: string;
@@ -170,9 +171,9 @@ export default function ViewQuestions() {
                 <div
                   key={qId}
                   onClick={() => handleQuestionSelect(question)}
-                  className={`bg-white rounded-lg shadow-sm p-4 cursor-pointer hover:shadow-md transition-all duration-200 border-l-4 ${isSelected
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                  className={`bg-white rounded-md p-4 cursor-pointer transition-all duration-200 border ${isSelected
+                    ? 'border-black ring-1 ring-black'
+                    : 'border-gray-200 hover:border-gray-300'
                     }`}
                 >
                   <div className="flex items-start justify-between">
@@ -338,10 +339,10 @@ export default function ViewQuestions() {
             </Card>
           ) : (
             <Card className="h-full min-h-[400px] flex items-center justify-center text-center text-gray-500 p-12">
-              <div>
-                <div className="text-6xl mb-4 opacity-20">📝</div>
+              <div className="flex flex-col items-center">
+                <FileText size={64} className="mb-4 opacity-20 text-gray-400" />
                 <h3 className="text-xl font-medium text-gray-900 mb-2">No Question Selected</h3>
-                <p>Select a question from the list to view its full details and test cases.</p>
+                <p>Select a question from the list to view its full details.</p>
               </div>
             </Card>
           )}

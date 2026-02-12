@@ -1,6 +1,18 @@
+
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import Button from '../components/Button';
+import {
+  Users,
+  Zap,
+  Activity,
+  LayoutGrid,
+  Trash2,
+  UserX,
+  XCircle,
+  RefreshCcw,
+  Info
+} from 'lucide-react';
 
 interface QueueStats {
   friendlyQueue: number;
@@ -11,7 +23,7 @@ interface QueueStats {
 
 export default function ClearQueues() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [stats, setStats] = useState<QueueStats>({
     friendlyQueue: 0,
     competitiveQueue: 0,
@@ -50,10 +62,10 @@ export default function ClearQueues() {
     setResult(null);
     try {
       await api.queues.clearAll();
-      setResult('Queues cleared successfully!');
+      setResult({ message: 'Queues cleared successfully!', type: 'success' });
       fetchStats(); // Refresh stats after clearing
-    } catch (error) {
-      setResult('Error clearing queues: ' + error);
+    } catch (error: any) {
+      setResult({ message: 'Error clearing queues: ' + error.message, type: 'error' });
     }
     setLoading(false);
   };
@@ -67,10 +79,10 @@ export default function ClearQueues() {
     setResult(null);
     try {
       await api.users.resetAll();
-      setResult('User states cleared successfully!');
+      setResult({ message: 'User states cleared successfully!', type: 'success' });
       fetchStats();
-    } catch (error) {
-      setResult('Error clearing user states: ' + error);
+    } catch (error: any) {
+      setResult({ message: 'Error clearing user states: ' + error.message, type: 'error' });
     }
     setLoading(false);
   };
@@ -84,143 +96,143 @@ export default function ClearQueues() {
     setResult(null);
     try {
       // This would need to be implemented in the backend
-      setResult('Room clearing not yet implemented.');
-    } catch (error) {
-      setResult('Error clearing rooms: ' + error);
+      setResult({ message: 'Room clearing not yet implemented.', type: 'error' });
+    } catch (error: any) {
+      setResult({ message: 'Error clearing rooms: ' + error.message, type: 'error' });
     }
     setLoading(false);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Queue Management</h1>
+        <h1 className="text-xl font-medium text-gray-900">Queue Management</h1>
         <Button
           onClick={fetchStats}
           variant="secondary"
           size="sm"
           disabled={statsLoading}
         >
-          {statsLoading ? 'Loading...' : 'Refresh Stats'}
+          <span className="flex items-center gap-2">
+            <RefreshCcw size={14} />
+            {statsLoading ? 'Loading...' : 'Refresh Stats'}
+          </span>
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-md border border-gray-200 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Friendly Queue</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.friendlyQueue}</p>
+              <p className="text-sm font-medium text-gray-500 mb-1">Friendly Queue</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.friendlyQueue}</p>
             </div>
-            <span className="text-2xl">👥</span>
+            <Users size={24} className="text-gray-300" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+        <div className="bg-white rounded-md border border-gray-200 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Competitive Queue</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.competitiveQueue}</p>
+              <p className="text-sm font-medium text-gray-500 mb-1">Competitive Queue</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.competitiveQueue}</p>
             </div>
-            <span className="text-2xl">⚔️</span>
+            <Zap size={24} className="text-gray-300" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+        <div className="bg-white rounded-md border border-gray-200 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Users</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalActiveUsers}</p>
+              <p className="text-sm font-medium text-gray-500 mb-1">Active Users</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.totalActiveUsers}</p>
             </div>
-            <span className="text-2xl">🟢</span>
+            <Activity size={24} className="text-gray-300" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+        <div className="bg-white rounded-md border border-gray-200 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Rooms</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalRooms}</p>
+              <p className="text-sm font-medium text-gray-500 mb-1">Active Rooms</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.totalRooms}</p>
             </div>
-            <span className="text-2xl">🏠</span>
+            <LayoutGrid size={24} className="text-gray-300" />
           </div>
         </div>
       </div>
 
       {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-center">
-            <div className="text-4xl mb-4">🧹</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Clear Queues</h3>
-            <p className="text-sm text-gray-600 mb-4">
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium text-gray-900">Danger Zone</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-md border border-gray-200 p-6 flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="font-medium text-gray-900 mb-2">Clear Queues</h3>
+            <p className="text-sm text-gray-500 mb-6 flex-1">
               Remove all users from matchmaking queues. Users will be notified.
             </p>
-            <button
+            <Button
+              variant="danger"
+              className="w-full"
               onClick={handleClear}
               disabled={loading}
-              className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
             >
               {loading ? 'Clearing...' : 'Clear All Queues'}
-            </button>
+            </Button>
           </div>
-        </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-center">
-            <div className="text-4xl mb-4">👤</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Reset User States</h3>
-            <p className="text-sm text-gray-600 mb-4">
+          <div className="bg-white rounded-md border border-gray-200 p-6 flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
+              <UserX size={24} />
+            </div>
+            <h3 className="font-medium text-gray-900 mb-2">Reset User States</h3>
+            <p className="text-sm text-gray-500 mb-6 flex-1">
               Reset all user states to 'not available'. This affects session tracking.
             </p>
-            <button
+            <Button
+              variant="danger"
+              className="w-full"
               onClick={handleClearUserStates}
               disabled={loading}
-              className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium disabled:opacity-50"
             >
-              {loading ? 'Clearing...' : 'Reset User States'}
-            </button>
+              {loading ? 'Resetting...' : 'Reset User States'}
+            </Button>
           </div>
-        </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-center">
-            <div className="text-4xl mb-4">🏠</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Clear All Rooms</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              End all active coding sessions and remove room data.
+          <div className="bg-white rounded-md border border-gray-200 p-6 flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
+              <XCircle size={24} />
+            </div>
+            <h3 className="font-medium text-gray-900 mb-2">Clear Keep-Alive Rooms</h3>
+            <p className="text-sm text-gray-500 mb-6 flex-1">
+              End all active coding sessions and remove room data. Destructive.
             </p>
-            <button
+            <Button
+              variant="danger"
+              className="w-full"
               onClick={handleClearRooms}
               disabled={loading}
-              className="w-full px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors font-medium disabled:opacity-50"
             >
               {loading ? 'Clearing...' : 'Clear All Rooms'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Result Message */}
       {result && (
-        <div className={`p-4 rounded-lg ${result.includes('successfully')
-          ? 'bg-green-100 border border-green-300 text-green-800'
-          : 'bg-red-100 border border-red-300 text-red-800'
+        <div className={`p-4 rounded-md border flex items-start gap-3 ${result.type === 'success'
+            ? 'bg-emerald-50 border-emerald-100 text-emerald-900'
+            : 'bg-red-50 border-red-100 text-red-900'
           }`}>
-          {result}
+          <Info size={20} className="shrink-0 mt-0.5" />
+          <p className="text-sm">{result.message}</p>
         </div>
       )}
-
-      {/* Instructions */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">Usage Instructions</h3>
-        <div className="space-y-2 text-sm text-gray-600">
-          <p><strong>Clear Queues:</strong> Use this when users are stuck in matchmaking or to reset the matching system.</p>
-          <p><strong>Reset User States:</strong> Use this to fix user state inconsistencies or when users appear online but aren't.</p>
-          <p><strong>Clear Rooms:</strong> Use this to end all active sessions and clean up room data. This is a destructive action.</p>
-        </div>
-      </div>
     </div>
   );
 }

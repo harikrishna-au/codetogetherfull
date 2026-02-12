@@ -1,8 +1,21 @@
+
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
+import {
+  FileText,
+  Users,
+  Hourglass,
+  Calendar,
+  Plus,
+  Eraser,
+  RefreshCcw,
+  CheckCircle,
+  Server,
+  Database
+} from 'lucide-react';
 
 interface DashboardProps {
   onNavigate: (page: 'dashboard' | 'view-questions' | 'add-question' | 'clear-queues') => void;
@@ -43,37 +56,25 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     {
       title: 'Total Questions',
       value: stats.totalQuestions,
-      icon: '📝',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-600',
-      borderColor: 'border-blue-500',
+      icon: <FileText size={24} />,
       action: () => onNavigate('view-questions')
     },
     {
       title: 'Active Users',
       value: stats.activeUsers,
-      icon: '👥',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-600',
-      borderColor: 'border-green-500',
+      icon: <Users size={24} />,
       action: () => { }
     },
     {
       title: 'Queue Length',
       value: stats.queueLength,
-      icon: '⏳',
-      bgColor: 'bg-yellow-50',
-      textColor: 'text-yellow-600',
-      borderColor: 'border-yellow-500',
+      icon: <Hourglass size={24} />,
       action: () => onNavigate('clear-queues')
     },
     {
       title: 'Questions Today',
       value: stats.questionsToday,
-      icon: '📅',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600',
-      borderColor: 'border-purple-500',
+      icon: <Calendar size={24} />,
       action: () => onNavigate('add-question')
     }
   ];
@@ -82,19 +83,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     {
       title: 'Add New Question',
       description: 'Create a new coding question with test cases',
-      icon: '➕',
+      icon: <Plus size={24} />,
       action: () => onNavigate('add-question')
     },
     {
       title: 'View All Questions',
       description: 'Browse and manage existing questions',
-      icon: '📝',
+      icon: <FileText size={24} />,
       action: () => onNavigate('view-questions')
     },
     {
       title: 'Clear Queues',
       description: 'Reset matchmaking queues and user states',
-      icon: '🧹',
+      icon: <Eraser size={24} />,
       action: () => onNavigate('clear-queues')
     }
   ];
@@ -102,41 +103,39 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <span className="ml-3 text-gray-600 text-lg">Loading dashboard...</span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+        <span className="ml-3 text-gray-500 text-sm">Loading dashboard...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-7xl mx-auto">
       {/* Stats Cards */}
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Overview</h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-medium text-gray-900">Overview</h2>
           <Button onClick={fetchStats} variant="secondary" size="sm">
             <span className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <RefreshCcw size={14} />
               Refresh
             </span>
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {dashboardCards.map((card, index) => (
             <div
               key={index}
               onClick={card.action}
-              className={`bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 ${card.borderColor} ${card.bgColor}`}
+              className="bg-white rounded-md border border-gray-200 p-5 cursor-pointer hover:border-black transition-colors duration-200"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
-                  <p className={`text-3xl font-bold ${card.textColor}`}>{card.value}</p>
+                  <p className="text-sm font-medium text-gray-500 mb-1">{card.title}</p>
+                  <p className="text-2xl font-semibold text-gray-900">{card.value}</p>
                 </div>
-                <span className="text-4xl">{card.icon}</span>
+                <span className="text-gray-300">{card.icon}</span>
               </div>
             </div>
           ))}
@@ -144,22 +143,22 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
 
       {/* Quick Actions */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium text-gray-900">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {quickActions.map((action, index) => (
             <div
               key={index}
               onClick={action.action}
-              className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all duration-200 border border-gray-200 hover:border-blue-300"
+              className="group bg-white rounded-md border border-gray-200 p-5 cursor-pointer hover:border-black transition-colors duration-200"
             >
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
+                <div className="flex-shrink-0 w-10 h-10 bg-gray-50 rounded-md flex items-center justify-center text-gray-400 group-hover:bg-gray-100 group-hover:text-black transition-colors">
                   {action.icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">{action.title}</h3>
-                  <p className="text-sm text-gray-600">{action.description}</p>
+                  <h3 className="font-medium text-gray-900 mb-1 group-hover:underline decoration-1 underline-offset-4">{action.title}</h3>
+                  <p className="text-sm text-gray-500">{action.description}</p>
                 </div>
               </div>
             </div>
@@ -168,24 +167,40 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
 
       {/* System Status */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">System Status</h2>
-        <Card>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <span className="text-gray-700 font-medium">Database Status</span>
-              <Badge variant="success">Connected</Badge>
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium text-gray-900">System Status</h2>
+        <div className="bg-white rounded-md border border-gray-200 divide-y divide-gray-100">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <Database size={18} className="text-gray-400" />
+              <span className="text-sm text-gray-600">Database Status</span>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <span className="text-gray-700 font-medium">Question Service</span>
-              <Badge variant="success">Online</Badge>
-            </div>
-            <div className="flex items-center justify-between py-3">
-              <span className="text-gray-700 font-medium">Matchmaking Service</span>
-              <Badge variant="success">Active</Badge>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+              <span className="text-sm text-gray-900 font-medium">Connected</span>
             </div>
           </div>
-        </Card>
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <FileText size={18} className="text-gray-400" />
+              <span className="text-sm text-gray-600">Question Service</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+              <span className="text-sm text-gray-900 font-medium">Online</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <Server size={18} className="text-gray-400" />
+              <span className="text-sm text-gray-600">Matchmaking Service</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+              <span className="text-sm text-gray-900 font-medium">Active</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

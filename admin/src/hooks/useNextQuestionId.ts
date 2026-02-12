@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { api } from '../api';
 
 export function useNextQuestionId() {
   const [nextId, setNextId] = useState('');
@@ -6,10 +7,10 @@ export function useNextQuestionId() {
   useEffect(() => {
     async function fetchNextId() {
       try {
-        const res = await fetch('/admin-api/admin/next-question-id');
-        const data = await res.json();
-        setNextId(data.nextId || 'q1');
-      } catch {
+        const nextId = await api.questions.getNextId();
+        setNextId(nextId);
+      } catch (err) {
+        console.error('Failed to fetch next question ID:', err);
         setNextId('q1');
       }
     }
