@@ -190,7 +190,7 @@ const HeroSection = ({
 							style={{ fontFamily: codeFont }}
 						>
 							<span className="bg-clip-text text-transparent bg-gradient-to-br from-[#e8eaed] via-[#cfd3d6] to-[#9ca3a9]">
-								<FlipWords words={words} className=" text-white/90 !px-0" duration={1000}/>
+								<FlipWords words={words} className=" text-white/90 !px-0" duration={1000} />
 							</span><span className="text-white/20 font-light">.</span><span className="text-white/90">Together</span>
 						</span>
 					</motion.h1>
@@ -249,7 +249,7 @@ const HeroSection = ({
 			</motion.div>
 
 			{/* ── Mode & Difficulty Selection ── */}
-			{/* <div
+			<div
 				id="mode-select"
 				className="w-full max-w-4xl mx-auto mt-24 text-center"
 			>
@@ -301,11 +301,10 @@ const HeroSection = ({
 							<Button
 								onClick={handleStartCoding}
 								size="lg"
-								className={`rounded-full px-10 py-3 text-base font-semibold transition-all transform hover:scale-[1.03] ${
-									selectedMode === "friendly"
+								className={`rounded-full px-10 py-3 text-base font-semibold transition-all transform hover:scale-[1.03] ${selectedMode === "friendly"
 										? "bg-gradient-to-r from-green-500 to-emerald-600"
 										: "bg-gradient-to-r from-orange-500 to-red-600"
-								} text-white`}
+									} text-white`}
 							>
 								<Zap className="w-5 h-5 mr-2" />
 								Start{" "}
@@ -316,7 +315,7 @@ const HeroSection = ({
 						</div>
 					</motion.div>
 				)}
-			</div> */}
+			</div>
 		</section>
 	);
 };
