@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { SignInButton, UserButton, SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
 import { motion } from 'framer-motion';
+import ActiveUserCount from '@/components/ActiveUserCount';
 
 const Header = () => {
   const { user } = useUser();
@@ -49,6 +50,9 @@ const Header = () => {
                 codetogether
               </span>
             </a>
+
+            {/* Active users */}
+            <ActiveUserCount />
 
             {/* Auth section */}
             <SignedOut>
