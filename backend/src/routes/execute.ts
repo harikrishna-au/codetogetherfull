@@ -9,7 +9,8 @@ const codeRunner = new CodeRunner();
 const SUPPORTED_LANGUAGES = ['javascript', 'python', 'java', 'cpp'] as const;
 
 router.post('/', asyncHandler(async (req: any, res: any) => {
-    const { code, language, questionId } = req.body;
+    const { code, language, questionId, visibleOnly, roomId } = req.body;
+    const userId = req.user?.userId;
 
     // Validate input
     if (!code || typeof code !== 'string') {
@@ -42,11 +43,17 @@ router.post('/', asyncHandler(async (req: any, res: any) => {
     }
 
     // Fetch test cases
-    const { data: testCases, error: tcErr } = await supabase
+    let query = supabase
         .from('test_cases')
         .select('id, input, expected_output, is_hidden')
         .eq('question_id', questionId)
         .order('is_hidden', { ascending: true });
+
+    if (visibleOnly) {
+        query = query.eq('is_hidden', false);
+    }
+
+    const { data: testCases, error: tcErr } = await query;
 
     if (tcErr) throw new AppError('Failed to fetch test cases', 500);
     if (!testCases || testCases.length === 0) {
@@ -65,6 +72,43 @@ router.post('/', asyncHandler(async (req: any, res: any) => {
             isHidden: tc.is_hidden,
         })),
     });
+
+    // Track completion when user passes ALL tests on a full submit (not visibleOnly run)
+    if (!visibleOnly && userId && results.passed === results.totalTests && results.totalTests > 0) {
+        // Insert into completed_questions (ignore conflict — user may have solved it before)
+        await supabase.from('completed_questions').upsert(
+            { user_id: userId, question_id: questionId, completed_at: new Date().toISOString() },
+            { onConflict: 'user_id,question_id', ignoreDuplicates: true }
+        );
+
+        // Log to session_history if we have a roomId
+        if (roomId) {
+            // Determine partner from room record
+            const { data: room } = await supabase
+                .from('rooms')
+                .select('participant1_id, participant2_id, created_at')
+                .eq('room_id', roomId)
+                .single();
+
+            if (room) {
+                const partnerId = room.participant1_id === userId
+                    ? room.participant2_id
+                    : room.participant1_id;
+                const durationSeconds = room.created_at
+                    ? Math.round((Date.now() - new Date(room.created_at).getTime()) / 1000)
+                    : null;
+
+                await supabase.from('session_history').insert({
+                    user_id: userId,
+                    room_id: roomId,
+                    question_id: questionId,
+                    completed_at: new Date().toISOString(),
+                    duration: durationSeconds,
+                    partner_id: partnerId,
+                });
+            }
+        }
+    }
 
     res.json({ success: true, results });
 }));

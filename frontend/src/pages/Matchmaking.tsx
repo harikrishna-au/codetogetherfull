@@ -108,8 +108,8 @@ const Matchmaking = () => {
         joined = true;
       } else {
         if (!joined) {
-          console.log('[Frontend] emitting joinQueue', mode);
-          socket.emit('joinQueue', { type: mode });
+          console.log('[Frontend] emitting joinQueue', mode, difficulty);
+          socket.emit('joinQueue', { type: mode, difficulty });
           window.sessionStorage.setItem('inQueue', '1');
           setHasJoinedQueue(true);
           joined = true;
@@ -128,8 +128,8 @@ const Matchmaking = () => {
       }
     } else {
       if (!joined) {
-        console.log('[Frontend] emitting joinQueue', mode);
-        socket.emit('joinQueue', { type: mode });
+        console.log('[Frontend] emitting joinQueue', mode, difficulty);
+        socket.emit('joinQueue', { type: mode, difficulty });
         window.sessionStorage.setItem('inQueue', '1');
         setHasJoinedQueue(true);
         joined = true;
@@ -147,8 +147,8 @@ const Matchmaking = () => {
   // Handler for Start Collaboration button
   const handleStartCollaboration = () => {
     if (!user || !socket || !connected) return;
-    console.log('[Frontend] emitting joinQueue', mode);
-    socket.emit('joinQueue', { type: mode });
+    console.log('[Frontend] emitting joinQueue', mode, difficulty);
+    socket.emit('joinQueue', { type: mode, difficulty });
     window.sessionStorage.setItem('inQueue', '1');
     setHasJoinedQueue(true);
   };

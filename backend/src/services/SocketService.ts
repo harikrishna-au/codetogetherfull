@@ -1,4 +1,5 @@
 import { Server } from 'socket.io';
+import * as Y from 'yjs';
 import { authenticateSocket } from '@/middleware/auth.js';
 import { supabase } from '@/config/supabase.js';
 import { logger } from '@/utils/logger.js';
@@ -8,6 +9,8 @@ export class SocketService {
   private io: Server<ClientToServerEvents, ServerToClientEvents>;
   private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
   private socketUsers: Map<string, string> = new Map(); // socketId -> userId
+  /** One Y.Doc per room — persists editor state for reconnecting users */
+  private yjsRooms: Map<string, Y.Doc> = new Map();
 
   constructor(io: Server<ClientToServerEvents, ServerToClientEvents>) {
     this.io = io;
@@ -99,7 +102,7 @@ export class SocketService {
     // Join queue event
     socket.on('joinQueue', async (data) => {
       try {
-        await this.handleJoinQueue(socket, data.type);
+        await this.handleJoinQueue(socket, data.type, (data as any).difficulty);
       } catch (error) {
         logger.error('Failed to join queue:', error);
       }
@@ -153,6 +156,80 @@ export class SocketService {
         callback?.({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
+
+    // Submission result broadcast event
+    socket.on('submissionResult', (data) => {
+      const userId = socket.user?.userId || 'unknown';
+      this.io.to(data.roomId).emit('submissionResult', {
+        userId,
+        passed: data.passed,
+        total: data.total,
+        timestamp: Date.now(),
+      });
+    });
+
+    // ---- Yjs collaborative editing ----
+
+    // New joiner requests the full document state
+    socket.on('yjs:sync-request', (data) => {
+      const doc = this.getOrCreateYjsDoc(data.roomId);
+      const state = Buffer.from(Y.encodeStateAsUpdate(doc)).toString('base64');
+      socket.emit('yjs:sync-response', { state });
+      logger.debug('Yjs sync-response sent', { roomId: data.roomId, socketId: socket.id });
+    });
+
+    // Incremental update from a client — persist + relay to others
+    socket.on('yjs:update', (data) => {
+      try {
+        const update = Buffer.from(data.update, 'base64');
+        const doc = this.getOrCreateYjsDoc(data.roomId);
+        Y.applyUpdate(doc, update);
+        // Relay to everyone else in the room
+        socket.to(data.roomId).emit('yjs:update', { update: data.update });
+      } catch (err) {
+        logger.error('Failed to apply Yjs update', { err });
+      }
+    });
+
+    // Awareness (cursor positions) — relay only, no server-side storage needed
+    socket.on('yjs:awareness', (data) => {
+      socket.to(data.roomId).emit('yjs:awareness', { update: data.update });
+    });
+
+    // Language change — relay to partners so their language selector updates
+    socket.on('languageChange', (data) => {
+      socket.to(data.roomId).emit('languageChange', {
+        language: data.language,
+        template: data.template,
+      });
+      logger.debug('Language change relayed', { roomId: data.roomId, language: data.language });
+    });
+
+    // WebRTC signaling relay — forward signal to the other peer
+    socket.on('webrtc-signal', (data: { roomId: string; from: string; signal: any }) => {
+      socket.to(data.roomId).emit('webrtc-signal', {
+        from: data.from,
+        signal: data.signal,
+      });
+    });
+  }
+
+  private getOrCreateYjsDoc(roomId: string): Y.Doc {
+    if (!this.yjsRooms.has(roomId)) {
+      this.yjsRooms.set(roomId, new Y.Doc());
+      logger.debug('Created Yjs doc for room', { roomId });
+    }
+    return this.yjsRooms.get(roomId)!;
+  }
+
+  /** Call when a room ends to free the Y.Doc from memory */
+  public cleanupYjsRoom(roomId: string): void {
+    const doc = this.yjsRooms.get(roomId);
+    if (doc) {
+      doc.destroy();
+      this.yjsRooms.delete(roomId);
+      logger.debug('Yjs doc cleaned up for room', { roomId });
+    }
   }
 
   private async updateUserSocketConnection(userId: string, socketId: string): Promise<void> {
@@ -197,15 +274,17 @@ export class SocketService {
     });
   }
 
-  private async handleJoinQueue(socket: AuthenticatedSocket, queueType: string): Promise<void> {
+  private async handleJoinQueue(socket: AuthenticatedSocket, queueType: string, difficulty?: string): Promise<void> {
     const userId = socket.user?.userId;
     if (!userId) throw new Error('User not authenticated');
+
+    const normalizedDifficulty = (difficulty || 'easy').toLowerCase();
 
     // Update user state to waiting
     await supabase.from('user_states').update({
       state: 'waiting',
-      mode: queueType,
-      difficulty: 'Easy', // Default
+      mode: queueType || 'friendly',
+      difficulty: normalizedDifficulty,
       queue_joined_at: new Date().toISOString(),
       last_active: new Date().toISOString()
     }).eq('user_id', userId);
@@ -318,21 +397,44 @@ export class SocketService {
     const userId = socket.user?.userId;
     if (!userId) throw new Error('User not authenticated');
 
-    // For now, return a default response - will be implemented with Room/Question models
-    logger.debug('Room question requested', {
-      userId,
-      roomId,
-    });
+    // Look up the room to get the assigned question_id
+    const { data: room, error: roomErr } = await supabase
+      .from('rooms')
+      .select('question_id, difficulty')
+      .eq('room_id', roomId)
+      .single();
+
+    if (roomErr || !room?.question_id) {
+      logger.warn('Room or question not found for getRoomQuestion', { roomId, userId });
+      return { success: false, error: 'Question not found for this room' };
+    }
+
+    // Fetch the full question
+    const { data: question, error: qErr } = await supabase
+      .from('questions')
+      .select('id, title, description, difficulty, examples, constraints, starter_code, tags')
+      .eq('id', room.question_id)
+      .single();
+
+    if (qErr || !question) {
+      logger.error('Failed to fetch question for room', { roomId, questionId: room.question_id });
+      return { success: false, error: 'Failed to load question' };
+    }
+
+    logger.debug('Room question retrieved', { userId, roomId, questionId: question.id });
 
     return {
       success: true,
       question: {
-        id: 'default',
-        title: 'Sample Question',
-        description: 'This is a sample question for testing.',
-        difficulty: 'Easy',
+        id: question.id,
+        title: question.title,
+        description: question.description,
+        difficulty: question.difficulty,
+        examples: question.examples,
+        constraints: question.constraints,
+        starterCode: question.starter_code,
+        tags: question.tags,
       },
-      questionIndex: 0,
     };
   }
 

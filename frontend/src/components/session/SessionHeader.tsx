@@ -57,7 +57,7 @@ const SessionHeader: React.FC<SessionHeaderProps> = ({
           </HoverCardTrigger>
           {isVideoOn && (
             <HoverCardContent side="bottom" align="end" className="w-[420px]">
-              <CameraHoverPreview isVideoOn={isVideoOn} />
+              <CameraHoverPreview isVideoOn={isVideoOn} isAudioOn={false} localStream={null} remoteStream={null} isConnected={false} />
             </HoverCardContent>
           )}
         </HoverCard>
