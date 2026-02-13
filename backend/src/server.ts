@@ -24,6 +24,7 @@ import executeRouter from '@/routes/execute.js';
 
 // Import services
 import { SocketService } from '@/services/SocketService.js';
+import { MatchmakingService } from '@/services/MatchmakingService.js';
 
 // Create Express app
 const app = express();
@@ -130,6 +131,10 @@ const startServer = async () => {
   try {
     // Initialize Socket.IO service
     new SocketService(io);
+
+    // Start matchmaking loop
+    const matchmaking = new MatchmakingService(io);
+    matchmaking.start();
 
     // Start server
     const PORT = env.PORT || 4000;

@@ -172,6 +172,13 @@ export interface ClientToServerEvents {
   codeChange: (data: { roomId: string; code: string }) => void;
   fetchChatHistory: (data: { roomId: string }, callback?: (response: any) => void) => void;
   getRoomQuestion: (data: { roomId: string }, callback?: (response: any) => void) => void;
+  submissionResult: (data: { roomId: string; userId?: string; passed: number; total: number }) => void;
+  // Yjs collaborative editing
+  'yjs:sync-request': (data: { roomId: string }) => void;
+  'yjs:update': (data: { roomId: string; update: string }) => void;
+  'yjs:awareness': (data: { roomId: string; update: string }) => void;
+  languageChange: (data: { roomId: string; language: string; template: string }) => void;
+  'webrtc-signal': (data: { roomId: string; from: string; signal: any }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -183,6 +190,13 @@ export interface ServerToClientEvents {
   roomClosed: (data: { roomId: string; reason: string }) => void;
   'room-exit': (data: { roomId: string; leaver: string; reason: string }) => void;
   userJoined: (data: { userId: string; timestamp: number }) => void;
+  submissionResult: (data: { userId: string; passed: number; total: number; timestamp: number }) => void;
+  // Yjs collaborative editing
+  'yjs:sync-response': (data: { state: string }) => void;
+  'yjs:update': (data: { update: string }) => void;
+  'yjs:awareness': (data: { update: string }) => void;
+  languageChange: (data: { language: string; template: string }) => void;
+  'webrtc-signal': (data: { from: string; signal: any }) => void;
 }
 
 // Statistics types

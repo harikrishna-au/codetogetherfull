@@ -13,4 +13,5 @@ export const API_ENDPOINTS = {
   USER_INACTIVE: `${API_BASE_URL}/user-inactive`,
   ACTIVE_USERS: `${API_BASE_URL}/active-users`,
   VALIDATE_SESSION: `${API_BASE_URL}/validate-session`,
+  EXECUTE: `${API_BASE_URL}/execute`,
 };

@@ -3,15 +3,18 @@ import { Video, VideoOff, Mic, MicOff, MessageSquare, MessageCircle, LogOut } fr
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { API_ENDPOINTS } from '@/lib/api';
+import type { ExecuteResult } from '@/components/session/ResultsPanel';
 import { toast } from 'sonner';
 import { useSocket } from '../context/SocketContext';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import ProblemPanel from '@/components/session/ProblemPanel';
-import EditorPanel from '@/components/session/EditorPanel';
+import EditorPanel, { languageTemplates, type SupportedLanguage } from '@/components/session/EditorPanel';
 import ResultsPanel from '@/components/session/ResultsPanel';
 import ChatSidebar from '@/components/session/ChatSidebar';
 import { useChat } from '@/hooks/useChat';
 import ActiveUserHeartbeat from '@/components/ActiveUserHeartbeat';
+import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
+import { useWebRTC } from '@/hooks/useWebRTC';
 
 const CodingSession = () => {
   const { user } = useContext(AuthContext);
@@ -54,9 +57,30 @@ const CodingSession = () => {
   const chatRef = useRef<HTMLDivElement>(null);
   const [code, setCode] = useState(`function solution() {
   // Write your JavaScript code here
-  
+
 }`);
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('javascript');
+  const [questionId, setQuestionId] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [executeResult, setExecuteResult] = useState<ExecuteResult | null>(null);
+
+  // WebRTC video / audio
+  const { localStream, remoteStream, isConnected: isWebRTCConnected } = useWebRTC({
+    socket,
+    roomId,
+    userId: user?.id ?? '',
+    isVideoOn,
+    isAudioOn,
+  });
+
+  // Yjs real-time collaboration + awareness (cursors / typing indicator)
+  const { bindToMonaco, resetContent, partnerUsers, partnerTyping } = useYjsCollaboration({
+    socket,
+    roomId,
+    userId: user?.id ?? '',
+    userName,
+  });
 
   // Exit session handler
   const handleExitSession = async () => {
@@ -93,10 +117,14 @@ const CodingSession = () => {
         console.log('[Socket] (frontend) Emitting join for roomId:', roomId, 'socketId:', socket.id);
         socket.emit('join', { roomId }, (ack: any) => {
           console.log('[Socket] (frontend) Join ack:', ack);
-          // After joining, fetch chat history and handle ack
           socket.emit('fetchChatHistory', { roomId }, (res: any) => {
             if (res && res.success && Array.isArray(res.messages)) {
               // setChatMessages is now handled in useChat hook
+            }
+          });
+          socket.emit('getRoomQuestion', { roomId }, (res: any) => {
+            if (res?.success && res.question?.id) {
+              setQuestionId(res.question.id);
             }
           });
         });
@@ -127,6 +155,25 @@ const CodingSession = () => {
     socket.on('roomClosed', (data) => handleRoomSessionEnd('roomClosed', data));
     socket.on('room-exit', (data) => handleRoomSessionEnd('room-exit', data));
 
+    // Partner submission notification
+    const handlePartnerSubmission = (data: { userId: string; passed: number; total: number }) => {
+      if (data.userId !== user?.id) {
+        if (data.passed === data.total) {
+          toast.success(`Partner passed all ${data.total} test cases!`);
+        } else {
+          toast(`Partner got ${data.passed}/${data.total} test cases`);
+        }
+      }
+    };
+    socket.on('submissionResult', handlePartnerSubmission);
+
+    // Partner language change — update local selector and reset Yjs content
+    const handlePartnerLanguageChange = (data: { language: SupportedLanguage; template: string }) => {
+      setSelectedLanguage(data.language);
+      resetContent(data.template);
+    };
+    socket.on('languageChange', handlePartnerLanguageChange);
+
     // Handle socket disconnect: exit session immediately
     const handleSocketDisconnect = () => {
       toast.error('Lost connection to server. Exiting session.');
@@ -141,6 +188,8 @@ const CodingSession = () => {
       socket.off('room-exit');
       socket.off('connect', tryJoinRoom);
       socket.off('disconnect', handleSocketDisconnect);
+      socket.off('submissionResult', handlePartnerSubmission);
+      socket.off('languageChange', handlePartnerLanguageChange);
     };
   }, [socket, roomId]);
 
@@ -151,13 +200,61 @@ const CodingSession = () => {
     userName,
   });
 
-  const handleSubmit = async () => {
+  // Called when local user picks a different language
+  const handleLanguageChange = (lang: SupportedLanguage) => {
+    setSelectedLanguage(lang);
+    const template = languageTemplates[lang];
+    // Reset Yjs doc — propagates to partner automatically
+    resetContent(template);
+    // Notify partner's language selector UI
+    if (socket && roomId) {
+      socket.emit('languageChange', { roomId, language: lang, template });
+    }
+  };
+
+  const handleCodeExecution = async (mode: 'run' | 'submit') => {
+    if (!questionId) {
+      toast.error('Question not loaded yet. Please wait.');
+      return;
+    }
+    const visibleOnly = mode === 'run';
     setIsSubmitting(true);
-    // Simulate submission
-    setTimeout(() => {
+    setExecuteResult(null);
+    try {
+      const res = await fetch(API_ENDPOINTS.EXECUTE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ code, language: selectedLanguage, questionId, visibleOnly, roomId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Execution failed');
+        return;
+      }
+      const result: ExecuteResult = data.results;
+      setExecuteResult(result);
+      // Only notify partner on full submit
+      if (mode === 'submit' && socket && roomId) {
+        socket.emit('submissionResult', {
+          roomId,
+          userId: user?.id,
+          passed: result.passed,
+          total: result.totalTests,
+        });
+      }
+      if (result.compilationError) {
+        toast.error('Compilation error');
+      } else if (result.passed === result.totalTests) {
+        toast.success(`${mode === 'run' ? 'Run' : 'Submit'}: ${result.passed}/${result.totalTests} passed!`);
+      } else {
+        toast.error(`${result.passed}/${result.totalTests} test cases passed`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Execution failed');
+    } finally {
       setIsSubmitting(false);
-      // Handle submission result
-    }, 2000);
+    }
   };
 
   return (
@@ -183,8 +280,14 @@ const CodingSession = () => {
                   <EditorPanel
                     code={code}
                     setCode={setCode}
-                    isSubmitting={isSubmitting}
-                    handleSubmit={handleSubmit}
+                    isSubmitting={isRunning || isSubmitting}
+                    onRun={() => handleCodeExecution('run')}
+                    onSubmit={() => handleCodeExecution('submit')}
+                    onLanguageChange={handleLanguageChange}
+                    language={selectedLanguage}
+                    onEditorMount={bindToMonaco}
+                    partnerUsers={partnerUsers}
+                    partnerTyping={partnerTyping}
                     isVideoOn={isVideoOn}
                     setIsVideoOn={setIsVideoOn}
                     isAudioOn={isAudioOn}
@@ -193,6 +296,9 @@ const CodingSession = () => {
                     setIsChatOpen={setIsChatOpen}
                     handleExitSession={handleExitSession}
                     roomId={roomId || ''}
+                    localStream={localStream}
+                    remoteStream={remoteStream}
+                    isWebRTCConnected={isWebRTCConnected}
                   />
                 </ResizablePanel>
 
@@ -200,7 +306,7 @@ const CodingSession = () => {
 
                 {/* Results Panel */}
                 <ResizablePanel defaultSize={30} minSize={20}>
-                  <ResultsPanel />
+                  <ResultsPanel isSubmitting={isRunning || isSubmitting} executeResult={executeResult} />
                 </ResizablePanel>
               </ResizablePanelGroup>
             </ResizablePanel>
