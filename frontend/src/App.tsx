@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Matchmaking from "./pages/Matchmaking";
 import { MatchmakingProvider } from "@/context/MatchmakingContext";
 import CodingSession from "./pages/CodingSession";
+import SessionResults from "./pages/SessionResults";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import React from "react";
 import { getOrCreateSessionId } from "@/lib/session";
@@ -35,29 +37,29 @@ const App = () => (
         <Toaster />
         <Sonner />
         <AuthProvider>
-          <SocketProvider>
-            <SessionAuthProvider>
-              <BrowserRouter
-                future={{
-                  v7_startTransition: true,
-                  v7_relativeSplatPath: true,
-                }}
-              >
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/matchmaking" element={
-                    <MatchmakingProvider>
-                      <Matchmaking />
-                    </MatchmakingProvider>
-                  } />
-                  <Route path="/session/:roomId" element={<CodingSession />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-              <NoInternetWidget />
-            </SessionAuthProvider>
-          </SocketProvider>
+          <SessionAuthProvider>
+            <SocketProvider>
+              <MatchmakingProvider>
+                <BrowserRouter
+                  future={{
+                    v7_startTransition: true,
+                    v7_relativeSplatPath: true,
+                  }}
+                >
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/matchmaking" element={<Matchmaking />} />
+                    <Route path="/session/:roomId" element={<CodingSession />} />
+                    <Route path="/session/:roomId/results" element={<SessionResults />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+                <NoInternetWidget />
+              </MatchmakingProvider>
+            </SocketProvider>
+          </SessionAuthProvider>
         </AuthProvider>
       </TooltipProvider>
     </ClerkProvider>

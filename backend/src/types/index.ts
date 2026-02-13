@@ -166,8 +166,9 @@ export interface ErrorResponse {
 // Socket event types
 export interface ClientToServerEvents {
   join: (data: { roomId: string }, callback?: (response: any) => void) => void;
-  joinQueue: (data: { type: string }) => void;
+  joinQueue: (data: { type: string; difficulty?: string }) => void;
   rejoinQueue: (data: { type: string }) => void;
+  leaveQueue: () => void;
   chatMessage: (data: { roomId: string; message: string; sender: string }) => void;
   codeChange: (data: { roomId: string; code: string }) => void;
   fetchChatHistory: (data: { roomId: string }, callback?: (response: any) => void) => void;
@@ -182,7 +183,9 @@ export interface ClientToServerEvents {
 }
 
 export interface ServerToClientEvents {
-  matchFound: (data: { roomId: string; question?: Question }) => void;
+  matchFound: (data: { roomId: string; mode?: string; difficulty?: string; question?: Question; rejoin?: boolean }) => void;
+  matchError: (data: { message: string }) => void;
+  requestTimerSync: (data: { roomId: string }) => void;
   queueRejoined: (data: { waiting: boolean; mode?: string; difficulty?: string }) => void;
   queueJoined: (data: { type: string; timestamp: number }) => void;
   chatMessage: (data: { message: string; sender: string; timestamp: number }) => void;

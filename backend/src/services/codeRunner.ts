@@ -608,7 +608,6 @@ ${captureCode}
 #include <climits>
 #include <cmath>
 #include <numeric>
-#include <functional>
 
 using namespace std;
 

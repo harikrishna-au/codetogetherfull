@@ -66,13 +66,12 @@ export class AuthService {
         // Update last login
         await supabase.from('users').update({ last_login: new Date().toISOString() }).eq('user_id', userId);
 
-        // Update UserState
+        // Only update last_active — do NOT overwrite state/room_id/queue so active sessions survive reconnect
         await supabase.from('user_states').upsert({
           user_id: userId,
-          state: 'idle', // Or keep existing state? aligning with previous logic
           last_active: new Date().toISOString(),
           is_active: true
-        }, { onConflict: 'user_id' }); // Upsert handles create or update
+        }, { onConflict: 'user_id' });
 
         userEmail = dbUser.email;
         userDisplayName = dbUser.display_name || '';

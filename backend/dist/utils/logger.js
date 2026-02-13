@@ -1,83 +1,39 @@
 import winston from 'winston';
-import { env } from '@/config/env.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { mkdirSync } from 'fs';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const logsDir = path.join(__dirname, '../../logs');
-try {
-    mkdirSync(logsDir, { recursive: true });
-}
-catch (error) {
-}
-const logFormat = winston.format.combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), winston.format.errors({ stack: true }), winston.format.json(), winston.format.prettyPrint());
-const consoleFormat = winston.format.combine(winston.format.colorize(), winston.format.timestamp({ format: 'HH:mm:ss' }), winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    let log = `${timestamp} [${level}]: ${message}`;
-    if (Object.keys(meta).length > 0) {
-        log += `\n${JSON.stringify(meta, null, 2)}`;
-    }
-    return log;
+import { env } from '../config/env.js';
+const levels = {
+    error: 0,
+    warn: 1,
+    info: 2,
+    http: 3,
+    debug: 4,
+};
+const level = () => {
+    // env.LOG_LEVEL is guaranteed to be one of 'error', 'warn', 'info', 'debug' by zod
+    return env.LOG_LEVEL || 'info';
+};
+const colors = {
+    error: 'red',
+    warn: 'yellow',
+    info: 'green',
+    http: 'magenta',
+    debug: 'white',
+};
+winston.addColors(colors);
+const format = winston.format.combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }), winston.format.colorize({ all: true }), winston.format.printf((info) => {
+    const { timestamp, level, message, ...meta } = info;
+    const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
+    return `${timestamp} ${level}: ${message}${metaStr}`;
 }));
+const transports = [
+    new winston.transports.Console(),
+];
 export const logger = winston.createLogger({
-    level: env.LOG_LEVEL,
-    format: logFormat,
-    defaultMeta: { service: 'codetogether-backend' },
-    transports: [
-        new winston.transports.File({
-            filename: path.join(logsDir, 'error.log'),
-            level: 'error',
-            maxsize: 5242880,
-            maxFiles: 5,
-        }),
-        new winston.transports.File({
-            filename: path.join(logsDir, 'combined.log'),
-            maxsize: 5242880,
-            maxFiles: 5,
-        }),
-    ],
+    level: level(),
+    levels,
+    format,
+    transports,
 });
-if (env.NODE_ENV !== 'production') {
-    logger.add(new winston.transports.Console({
-        format: consoleFormat,
-    }));
-}
-export const logError = (message, error, meta) => {
-    logger.error(message, {
-        error: error?.message,
-        stack: error?.stack,
-        ...meta,
-    });
-};
-export const logInfo = (message, meta) => {
-    logger.info(message, meta);
-};
-export const logWarn = (message, meta) => {
-    logger.warn(message, meta);
-};
-export const logDebug = (message, meta) => {
-    logger.debug(message, meta);
-};
 export const requestLogger = (req, res, next) => {
-    const start = Date.now();
-    res.on('finish', () => {
-        const duration = Date.now() - start;
-        const logData = {
-            method: req.method,
-            url: req.url,
-            statusCode: res.statusCode,
-            duration: `${duration}ms`,
-            userAgent: req.get('User-Agent'),
-            ip: req.ip,
-            userId: req.user?.userId,
-        };
-        if (res.statusCode >= 400) {
-            logger.warn('HTTP Request', logData);
-        }
-        else {
-            logger.info('HTTP Request', logData);
-        }
-    });
+    logger.http(`${req.method} ${req.url}`);
     next();
 };
-//# sourceMappingURL=logger.js.map

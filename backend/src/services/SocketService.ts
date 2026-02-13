@@ -3,6 +3,8 @@ import * as Y from 'yjs';
 import { authenticateSocket } from '@/middleware/auth.js';
 import { supabase } from '@/config/supabase.js';
 import { logger } from '@/utils/logger.js';
+import { TimerService } from './TimerService.js';
+import { MatchmakingService } from './MatchmakingService.js';
 import type { AuthenticatedSocket, ClientToServerEvents, ServerToClientEvents } from '@/types/index.js';
 
 export class SocketService {
@@ -11,10 +13,16 @@ export class SocketService {
   private socketUsers: Map<string, string> = new Map(); // socketId -> userId
   /** One Y.Doc per room — persists editor state for reconnecting users */
   private yjsRooms: Map<string, Y.Doc> = new Map();
+  private timerService: TimerService;
+  private matchmakingService: MatchmakingService;
 
   constructor(io: Server<ClientToServerEvents, ServerToClientEvents>) {
     this.io = io;
+    this.timerService = new TimerService(io);
+    this.matchmakingService = new MatchmakingService(io);
     this.setupSocketHandlers();
+    // Initialize timers for existing active rooms
+    this.timerService.initializeActiveRoomTimers();
   }
 
   private setupSocketHandlers(): void {
@@ -102,9 +110,28 @@ export class SocketService {
     // Join queue event
     socket.on('joinQueue', async (data) => {
       try {
-        await this.handleJoinQueue(socket, data.type, (data as any).difficulty);
+        await this.handleJoinQueue(socket, data.type, data.difficulty);
       } catch (error) {
         logger.error('Failed to join queue:', error);
+      }
+    });
+
+    // Leave queue event (cancel)
+    socket.on('leaveQueue', async () => {
+      try {
+        const uid = socket.user?.userId;
+        if (!uid) return;
+        this.matchmakingService.removeUserFromAllQueues(uid);
+        await supabase.from('user_states').update({
+          state: 'idle',
+          mode: null,
+          difficulty: null,
+          queue_joined_at: null,
+          room_id: null,
+        }).eq('user_id', uid);
+        logger.info('User left queue', { userId: uid });
+      } catch (error) {
+        logger.error('Failed to handle leaveQueue:', error);
       }
     });
 
@@ -205,6 +232,37 @@ export class SocketService {
       logger.debug('Language change relayed', { roomId: data.roomId, language: data.language });
     });
 
+    // Timer sync request — send current timer state for the room
+    socket.on('requestTimerSync', async (data: { roomId: string }) => {
+      try {
+        const { data: room } = await supabase
+          .from('rooms')
+          .select('created_at, status')
+          .eq('room_id', data.roomId)
+          .single();
+
+        if (room && room.status === 'active' && room.created_at) {
+          const SESSION_DURATION_MS = 45 * 60 * 1000; // 45 minutes
+          const startTime = new Date(room.created_at).getTime();
+          const endTime = startTime + SESSION_DURATION_MS;
+          const now = Date.now();
+          const isActive = now < endTime;
+
+          socket.emit('timer-sync', {
+            roomId: data.roomId,
+            startTime,
+            endTime,
+            duration: SESSION_DURATION_MS,
+            isActive
+          });
+
+          logger.debug('Timer sync sent', { roomId: data.roomId, isActive });
+        }
+      } catch (err) {
+        logger.error('Failed to sync timer', { err, roomId: data.roomId });
+      }
+    });
+
     // WebRTC signaling relay — forward signal to the other peer
     socket.on('webrtc-signal', (data: { roomId: string; from: string; signal: any }) => {
       socket.to(data.roomId).emit('webrtc-signal', {
@@ -261,6 +319,17 @@ export class SocketService {
       last_active: new Date().toISOString()
     }).eq('user_id', userId);
 
+    // Start room timer if not already started
+    const { data: room } = await supabase
+      .from('rooms')
+      .select('created_at')
+      .eq('room_id', roomId)
+      .single();
+
+    if (room?.created_at) {
+      this.timerService.startRoomTimer(roomId, room.created_at);
+    }
+
     logger.info('User joined room', {
       userId,
       roomId,
@@ -278,62 +347,76 @@ export class SocketService {
     const userId = socket.user?.userId;
     if (!userId) throw new Error('User not authenticated');
 
+    const mode = queueType || 'friendly';
     const normalizedDifficulty = (difficulty || 'easy').toLowerCase();
 
-    // Update user state to waiting
-    await supabase.from('user_states').update({
+    // Persist waiting state
+    await supabase.from('user_states').upsert({
+      user_id: userId,
       state: 'waiting',
-      mode: queueType || 'friendly',
+      mode,
       difficulty: normalizedDifficulty,
+      socket_id: socket.id,
+      is_active: true,
+      room_id: null,
       queue_joined_at: new Date().toISOString(),
-      last_active: new Date().toISOString()
-    }).eq('user_id', userId);
+      last_active: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
 
-    logger.info('User joined queue', {
-      userId,
-      queueType,
-      socketId: socket.id,
-    });
+    logger.info('User joined queue', { userId, mode, difficulty: normalizedDifficulty, socketId: socket.id });
 
-    // Emit queue joined confirmation
-    socket.emit('queueJoined', {
-      type: queueType,
-      timestamp: Date.now(),
-    });
+    // Confirm to client
+    socket.emit('queueJoined', { type: mode, difficulty: normalizedDifficulty, timestamp: Date.now() });
+
+    // Attempt immediate match via in-memory queues
+    await this.matchmakingService.joinQueue(userId, socket.id, mode, normalizedDifficulty);
   }
 
   private async handleRejoinQueue(socket: AuthenticatedSocket, _queueType: string): Promise<void> {
     const userId = socket.user?.userId;
     if (!userId) throw new Error('User not authenticated');
 
-    // Check if user is already in queue
+    // Check if user is already in queue or matched
     const { data: userState } = await supabase
       .from('user_states')
-      .select('state, mode, difficulty')
+      .select('state, mode, difficulty, room_id')
       .eq('user_id', userId)
       .single();
 
-    if (userState && userState.state === 'waiting') {
-      // User is already in queue
-      socket.emit('queueRejoined', {
-        waiting: true,
-        mode: userState.mode,
-        difficulty: userState.difficulty,
-      });
+    if (userState) {
+      if (userState.state === 'matched' || userState.state === 'in-session') {
+        if (userState.room_id) {
+          logger.info('User reconnected to active match', { userId, roomId: userState.room_id });
+          socket.emit('matchFound', {
+            roomId: userState.room_id,
+            difficulty: userState.difficulty,
+            rejoin: true
+          });
+          return;
+        }
+      } else if (userState.state === 'waiting') {
+        // User is already in queue
+        socket.emit('queueRejoined', {
+          waiting: true,
+          mode: userState.mode,
+          difficulty: userState.difficulty,
+        });
 
-      logger.info('User rejoined existing queue', {
-        userId,
-        mode: userState.mode,
-        difficulty: userState.difficulty,
-      });
-    } else {
-      // User not in queue, emit rejoin response
-      socket.emit('queueRejoined', {
-        waiting: false,
-      });
-
-      logger.info('User not in queue for rejoin', { userId });
+        logger.info('User rejoined existing queue', {
+          userId,
+          mode: userState.mode,
+          difficulty: userState.difficulty,
+        });
+        return;
+      }
     }
+
+    // User not in queue or active match
+    socket.emit('queueRejoined', {
+      waiting: false,
+    });
+
+    logger.info('User not in queue for rejoin', { userId });
   }
 
   private async handleChatMessage(socket: AuthenticatedSocket, data: {
@@ -443,6 +526,9 @@ export class SocketService {
     if (!userId) return;
 
     try {
+      // Remove from in-memory matchmaking queues if still waiting
+      this.matchmakingService.removeUserFromAllQueues(userId);
+
       // Update user state
       await supabase.from('user_states').update({
         socket_id: null,

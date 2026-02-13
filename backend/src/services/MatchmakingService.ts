@@ -4,99 +4,159 @@ import { supabase } from '@/config/supabase.js';
 import { logger } from '@/utils/logger.js';
 import type { ServerToClientEvents, ClientToServerEvents } from '@/types/index.js';
 
-const POLL_INTERVAL_MS = 3000;
-const DIFFICULTY_ORDER = ['easy', 'medium', 'hard'];
+// 6 queues: friendly-easy | friendly-medium | friendly-hard
+//           challenge-easy | challenge-medium | challenge-hard
+const MODES = ['friendly', 'challenge'];
+const DIFFICULTIES = ['easy', 'medium', 'hard'];
+
+type QueueEntry = {
+  userId: string;
+  socketId: string;
+  joinedAt: number;
+};
 
 export class MatchmakingService {
   private io: Server<ClientToServerEvents, ServerToClientEvents>;
-  private timer: ReturnType<typeof setInterval> | null = null;
+  // key = "mode:difficulty"
+  private queues: Map<string, QueueEntry[]> = new Map();
 
   constructor(io: Server<ClientToServerEvents, ServerToClientEvents>) {
     this.io = io;
-  }
-
-  start(): void {
-    if (this.timer) return;
-    this.timer = setInterval(() => this.runMatchCycle(), POLL_INTERVAL_MS);
-    logger.info('MatchmakingService started');
-  }
-
-  stop(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+    // Pre-create all 6 queues
+    for (const m of MODES) {
+      for (const d of DIFFICULTIES) {
+        this.queues.set(`${m}:${d}`, []);
+      }
     }
   }
 
-  // ---- core matching loop ----
+  // ---- Public API called from SocketService ----
 
-  private async runMatchCycle(): Promise<void> {
+  /**
+   * Add a user to the appropriate queue and immediately attempt to match.
+   * Returns the queue key the user was placed into.
+   */
+  async joinQueue(userId: string, socketId: string, mode: string, difficulty: string): Promise<void> {
+    const key = this.queueKey(mode, difficulty);
+
+    // Remove any previous entry for this user across all queues
+    this.removeUserFromAllQueues(userId);
+
+    const queue = this.queues.get(key);
+    if (!queue) {
+      logger.warn('Unknown queue key', { key });
+      return;
+    }
+
+    queue.push({ userId, socketId, joinedAt: Date.now() });
+    logger.info(`User joined queue [${key}]`, { userId, socketId, queueSize: queue.length });
+
+    // Try to match immediately
+    await this.tryMatch(key);
+  }
+
+  /**
+   * Remove a user from whatever queue they are in (on disconnect / cancel).
+   */
+  removeUserFromAllQueues(userId: string): void {
+    for (const [key, queue] of this.queues.entries()) {
+      const before = queue.length;
+      const idx = queue.findIndex(e => e.userId === userId);
+      if (idx !== -1) {
+        queue.splice(idx, 1);
+        logger.info(`User removed from queue [${key}]`, { userId, queueSizeBefore: before, after: queue.length });
+      }
+    }
+  }
+
+  /** Queue sizes for diagnostics */
+  getQueueSizes(): Record<string, number> {
+    const result: Record<string, number> = {};
+    for (const [key, q] of this.queues.entries()) {
+      result[key] = q.length;
+    }
+    return result;
+  }
+
+  // ---- Internal ----
+
+  private queueKey(mode: string, difficulty: string): string {
+    const m = MODES.includes(mode) ? mode : 'friendly';
+    const d = DIFFICULTIES.includes(difficulty) ? difficulty : 'easy';
+    return `${m}:${d}`;
+  }
+
+  private async tryMatch(key: string): Promise<void> {
+    const queue = this.queues.get(key);
+    if (!queue || queue.length < 2) return;
+
+    // Pop the two longest-waiting users
+    const [userA, userB] = queue.splice(0, 2);
+    const [, difficulty] = key.split(':');
+    const mode = key.split(':')[0];
+
+    logger.info(`Matched pair from queue [${key}]`, {
+      userA: userA.userId,
+      userB: userB.userId,
+    });
+
     try {
-      // Fetch all waiting users ordered by how long they've been waiting
-      const { data: waitingUsers, error } = await supabase
-        .from('user_states')
-        .select('user_id, difficulty, mode, queue_joined_at, socket_id')
-        .eq('state', 'waiting')
-        .eq('is_active', true)
-        .order('queue_joined_at', { ascending: true });
-
-      if (error || !waitingUsers || waitingUsers.length < 2) return;
-
-      // Group by difficulty
-      const byDifficulty: Record<string, typeof waitingUsers> = {};
-      for (const u of waitingUsers) {
-        const d = (u.difficulty || 'easy').toLowerCase();
-        if (!byDifficulty[d]) byDifficulty[d] = [];
-        byDifficulty[d].push(u);
-      }
-
-      // Match pairs within each difficulty
-      for (const difficulty of DIFFICULTY_ORDER) {
-        const pool = byDifficulty[difficulty] || [];
-        while (pool.length >= 2) {
-          const [userA, userB] = pool.splice(0, 2);
-          await this.createMatch(userA, userB, difficulty).catch((err) =>
-            logger.error('Failed to create match', { err, difficulty })
-          );
-        }
-      }
+      await this.createRoom(userA, userB, mode, difficulty);
     } catch (err) {
-      logger.error('MatchmakingService cycle error', { err });
+      logger.error('createRoom failed — putting users back in queue', { err, key });
+      // Put them back at the front so they're re-matched quickly
+      queue.unshift(userB, userA);
     }
   }
 
-  private async createMatch(
-    userA: { user_id: string; socket_id: string | null; mode: string | null },
-    userB: { user_id: string; socket_id: string | null; mode: string | null },
+  private async createRoom(
+    userA: QueueEntry,
+    userB: QueueEntry,
+    mode: string,
     difficulty: string,
   ): Promise<void> {
-    // Pick a question for this match
-    const question = await this.pickQuestion(difficulty, [userA.user_id, userB.user_id]);
+    const question = await this.pickQuestion(difficulty, [userA.userId, userB.userId]);
 
     if (!question) {
-      logger.warn('No question available for match', { difficulty, userA: userA.user_id, userB: userB.user_id });
-      // Emit error to both users so they know why match failed
-      this.notifyUser(userA.socket_id, 'matchError', { message: 'No questions available. Please try again later.' });
-      this.notifyUser(userB.socket_id, 'matchError', { message: 'No questions available. Please try again later.' });
+      logger.warn('No question available for match', { difficulty, userA: userA.userId, userB: userB.userId });
+      this.emitToSocket(userA.socketId, 'matchError', { message: 'No questions available. Please try again later.' });
+      this.emitToSocket(userB.socketId, 'matchError', { message: 'No questions available. Please try again later.' });
       return;
     }
 
     const roomId = uuidv4();
-    const mode = userA.mode || userB.mode || 'friendly';
 
-    // Mark both users as matched before emitting to prevent race conditions
-    await supabase.from('user_states').update({
-      state: 'matched',
-      room_id: roomId,
-      queue_joined_at: null,
-      last_active: new Date().toISOString(),
-    }).in('user_id', [userA.user_id, userB.user_id]);
+    // Persist: mark both users as matched
+    await supabase.from('user_states').upsert([
+      {
+        user_id: userA.userId,
+        state: 'matched',
+        room_id: roomId,
+        mode,
+        difficulty,
+        queue_joined_at: null,
+        last_active: new Date().toISOString(),
+        is_active: true,
+        socket_id: userA.socketId,
+      },
+      {
+        user_id: userB.userId,
+        state: 'matched',
+        room_id: roomId,
+        mode,
+        difficulty,
+        queue_joined_at: null,
+        last_active: new Date().toISOString(),
+        is_active: true,
+        socket_id: userB.socketId,
+      },
+    ], { onConflict: 'user_id' });
 
-    // Create room record
+    // Persist: create room record
     await supabase.from('rooms').insert({
       room_id: roomId,
-      participant1_id: userA.user_id,
-      participant2_id: userB.user_id,
+      participant1_id: userA.userId,
+      participant2_id: userB.userId,
       question_id: question.id,
       difficulty,
       mode,
@@ -104,15 +164,18 @@ export class MatchmakingService {
       created_at: new Date().toISOString(),
     });
 
-    logger.info('Match created', {
+    logger.info('Room created', {
       roomId,
+      mode,
       difficulty,
       question: question.title,
-      users: [userA.user_id, userB.user_id],
+      users: [userA.userId, userB.userId],
     });
 
     const matchPayload = {
       roomId,
+      mode,
+      difficulty,
       question: {
         id: question.id,
         title: question.title,
@@ -125,71 +188,54 @@ export class MatchmakingService {
       },
     };
 
-    // Notify both users
-    this.notifyUser(userA.socket_id, 'matchFound', matchPayload);
-    this.notifyUser(userB.socket_id, 'matchFound', matchPayload);
+    // Notify both users immediately
+    this.emitToSocket(userA.socketId, 'matchFound', matchPayload);
+    this.emitToSocket(userB.socketId, 'matchFound', matchPayload);
   }
 
-  // ---- question selection ----
+  // ---- Question selection ----
 
   async pickQuestion(difficulty: string, userIds: string[]): Promise<any | null> {
-    const normDifficulty = difficulty.toLowerCase();
+    const norm = difficulty.toLowerCase();
 
-    // Get all questions at the requested difficulty
-    const { data: allAtDifficulty } = await supabase
+    const { data: questions } = await supabase
       .from('questions')
       .select('id, title, description, difficulty, examples, constraints, starter_code, tags')
-      .ilike('difficulty', normDifficulty);
+      .ilike('difficulty', norm);
 
-    const question = await this.selectUnsolvedQuestion(allAtDifficulty || [], userIds);
-    if (question) return question;
+    const q = await this.selectUnsolved(questions || [], userIds);
+    if (q) return q;
 
-    // Fallback: try other difficulties in order
-    for (const d of DIFFICULTY_ORDER) {
-      if (d === normDifficulty) continue;
-      const { data: fallback } = await supabase
-        .from('questions')
-        .select('id, title, description, difficulty, examples, constraints, starter_code, tags')
-        .ilike('difficulty', d);
-
-      const q = await this.selectUnsolvedQuestion(fallback || [], userIds);
-      if (q) {
-        logger.info('Falling back to different difficulty', { requested: normDifficulty, actual: d });
-        return q;
-      }
-    }
-
-    // Last resort: pick any random question (both users have solved everything)
-    const { data: any } = await supabase
+    // Fallback: any difficulty
+    const { data: all } = await supabase
       .from('questions')
       .select('id, title, description, difficulty, examples, constraints, starter_code, tags')
-      .limit(50);
-    if (any && any.length > 0) return any[Math.floor(Math.random() * any.length)];
+      .limit(100);
 
-    return null;
+    return await this.selectUnsolved(all || [], userIds) ?? (all && all.length > 0 ? all[0] : null);
   }
 
-  private async selectUnsolvedQuestion(questions: any[], userIds: string[]): Promise<any | null> {
+  private async selectUnsolved(questions: any[], userIds: string[]): Promise<any | null> {
     if (!questions.length) return null;
 
-    // Get all question IDs solved by either user
     const { data: solved } = await supabase
       .from('completed_questions')
       .select('question_id')
       .in('user_id', userIds);
 
     const solvedIds = new Set((solved || []).map((r: any) => r.question_id));
-    const unsolved = questions.filter((q) => !solvedIds.has(q.id));
+    const unsolved = questions.filter(q => !solvedIds.has(q.id));
 
-    if (unsolved.length === 0) return null;
-
-    // Randomly pick from unsolved
+    if (!unsolved.length) return questions[Math.floor(Math.random() * questions.length)];
     return unsolved[Math.floor(Math.random() * unsolved.length)];
   }
 
-  private notifyUser(socketId: string | null, event: string, data: any): void {
-    if (!socketId) return;
+  private emitToSocket(socketId: string, event: string, data: any): void {
     const socket = this.io.sockets.sockets.get(socketId);
-    if (socket) socket.emit(event as any, data);
+    if (socket) {
+      socket.emit(event as any, data);
+    } else {
+      logger.warn(`Socket not found for event ${event}`, { socketId });
+    }
   }
 }
