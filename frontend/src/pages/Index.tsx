@@ -6,10 +6,10 @@ import { fetchUserState } from '@/lib/userState';
 import Header from '@/components/landing/Header';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
+import ContactSection from '@/components/landing/ContactSection';
 import Footer from '@/components/landing/Footer';
+import BackgroundEffects from '@/components/landing/BackgroundEffects';
 import ActiveUserHeartbeat from '@/components/ActiveUserHeartbeat';
-
-
 
 const Index = () => {
   const [selectedMode, setSelectedMode] = useState<'friendly' | 'challenge' | null>(null);
@@ -23,7 +23,6 @@ const Index = () => {
     fetchUserState(user.id, sessionToken).then(state => {
       setUserState(state);
       if (state && state.state === 'waiting' && state.mode && state.difficulty) {
-        // Redirect to matchmaking page to show waiting screen
         navigate('/matchmaking', { state: { mode: state.mode, difficulty: state.difficulty } });
       }
     });
@@ -42,18 +41,31 @@ const Index = () => {
   return (
     <>
       {user && <ActiveUserHeartbeat userId={user.id} />}
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="relative min-h-screen overflow-x-hidden scroll-smooth">
+        <BackgroundEffects />
         <Header />
-        <div className="flex flex-col items-center justify-center pt-8">
+
+        {/* Active users badge */}
+        <div className="relative z-10 flex justify-center pt-24">
           <ActiveUserCount />
         </div>
+
         <HeroSection
           selectedMode={selectedMode}
           setSelectedMode={setSelectedMode}
           selectedDifficulty={selectedDifficulty}
           setSelectedDifficulty={setSelectedDifficulty}
         />
+
+        {/* Divider */}
+        <div className="relative z-10 mx-auto w-full max-w-xs h-[1px] bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
         <FeaturesSection />
+
+        {/* Divider */}
+        <div className="relative z-10 mx-auto w-full max-w-xs h-[1px] bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+        <ContactSection />
         <Footer />
       </div>
     </>
