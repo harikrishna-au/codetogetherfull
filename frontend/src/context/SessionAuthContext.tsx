@@ -5,6 +5,7 @@ interface SessionAuthContextValue {
   user: any;
   sessionToken: string | null;
   loading: boolean;
+  refreshToken: () => Promise<void>;
   loginWithSession: () => Promise<void>; // Deprecated/No-op
   logoutWithSession: () => Promise<void>; // Deprecated/No-op
 }
@@ -13,6 +14,7 @@ const SessionAuthContext = createContext<SessionAuthContextValue>({
   user: null,
   sessionToken: null,
   loading: true,
+  refreshToken: async () => { },
   loginWithSession: async () => { },
   logoutWithSession: async () => { },
 });
@@ -48,7 +50,8 @@ export const SessionAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // For socket, we probably need a valid one at connection time.
 
     // Set up an interval to refresh token if needed, or just let it be.
-    const interval = setInterval(fetchToken, 5 * 60 * 1000); // 5 minutes
+    // Refresh every 3 min — Clerk tokens expire in ~4-5 min, so we need to stay ahead
+    const interval = setInterval(fetchToken, 3 * 60 * 1000);
     return () => clearInterval(interval);
 
   }, [isSignedIn, authLoaded, getToken]);
@@ -60,6 +63,11 @@ export const SessionAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       user: user || null,
       sessionToken,
       loading,
+      refreshToken: async () => {
+        if (isSignedIn) {
+          try { setSessionToken(await getToken()); } catch (e) { console.error('Failed to refresh token:', e); }
+        }
+      },
       loginWithSession: async () => { }, // No-op
       logoutWithSession: async () => { } // No-op
     }}>

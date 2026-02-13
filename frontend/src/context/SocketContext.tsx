@@ -1,6 +1,6 @@
 import { getSocket } from '../lib/socket';
-import React, { createContext, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { io, Socket } from 'socket.io-client';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Socket } from 'socket.io-client';
 import { AuthContext } from './AuthContext';
 import { useSessionAuth } from './SessionAuthContext';
 
@@ -14,59 +14,70 @@ const SocketContext = createContext<SocketContextValue>({ socket: null, connecte
 const useSocket = () => useContext(SocketContext);
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useContext(AuthContext);
-  const { sessionToken } = useSessionAuth();
-  // Memoize user by UID to avoid new object reference on every render
-  // const stableUser = useMemo(() => user, [user?.uid]); // Not needed with Clerk user object stability or just relying on context updates
-  // Track last user/session to prevent unnecessary disconnects/reconnects
-  const lastUserIdRef = useRef<string | null>(null);
-  const [connected, setConnected] = useState(false);
+  const { user } = useContext(AuthContext);
+  const { sessionToken, refreshToken } = useSessionAuth();
   const socketRef = useRef<Socket | null>(null);
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // Only connect if user exists and session token is available
-    const userId = user?.id || null;
-    if (!user || !sessionToken) return; // Wait for token
+    const userId = user?.id ?? null;
 
-    console.log('[SocketContext] Using Clerk token for Socket.IO');
-
-    // Only create a new socket if user actually changed or socket is null
-    if (lastUserIdRef.current !== userId || !socketRef.current) {
-      if (socketRef.current) {
+    // Need both user and token to connect
+    if (!userId || !sessionToken) {
+      // If we lost the user (sign-out), tear down the socket
+      if (!userId && socketRef.current) {
+        socketRef.current.off();
         socketRef.current.disconnect();
         socketRef.current = null;
-      }
-
-      const socket = getSocket(sessionToken);
-      socketRef.current = socket;
-      lastUserIdRef.current = userId;
-
-      socket.on('connect', () => {
-        console.log('[SocketContext] Socket connected:', socket.id);
-        setConnected(true);
-      });
-      socket.on('disconnect', () => {
-        console.log('[SocketContext] Socket disconnected');
         setConnected(false);
-      });
-      socket.on('connect_error', (err) => {
-        console.error('[SocketContext] Socket connect_error:', err);
-      });
+      }
+      return;
     }
 
-    return () => {
-      // Don't disconnect on unmount immediately if we want to keep connection alive during nav?
-      // But usually we do want to cleanup.
-      // For now, let's keep it simple and clean up.
-      console.log('[SocketContext] Cleanup: disconnecting socket');
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-        lastUserIdRef.current = null;
-      }
+    // If a socket already exists and is alive, just update its auth token
+    // (handles token refresh — no reconnect needed)
+    if (socketRef.current && (socketRef.current.connected || socketRef.current.active)) {
+      (socketRef.current as any).auth = { token: sessionToken };
+      return;
+    }
+
+    // Tear down any dead socket before creating a new one
+    if (socketRef.current) {
+      socketRef.current.off();
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    console.log('[SocketContext] Creating socket for user', userId);
+    const s = getSocket(sessionToken);
+    socketRef.current = s;
+
+    const onConnect = () => {
+      console.log('[SocketContext] Connected:', s.id);
+      setConnected(true);
+    };
+    const onDisconnect = (reason: string) => {
+      console.log('[SocketContext] Disconnected:', reason);
       setConnected(false);
     };
-  }, [user, sessionToken]);
+    const onConnectError = (err: Error) => {
+      console.error('[SocketContext] connect_error:', err.message);
+      if (err.message === 'Authentication failed') {
+        console.log('[SocketContext] Auth error — refreshing token');
+        refreshToken();
+      }
+    };
+
+    s.on('connect', onConnect);
+    s.on('disconnect', onDisconnect);
+    s.on('connect_error', onConnectError);
+
+    // Sync if already connected (singleton reuse)
+    if (s.connected) setConnected(true);
+
+    // NO cleanup return — we intentionally keep the socket alive across renders.
+    // The socket is only torn down when user signs out (handled above).
+  }, [user, sessionToken]); // Re-run when user or token changes
 
   return (
     <SocketContext.Provider value={{ socket: socketRef.current, connected }}>

@@ -24,7 +24,6 @@ import executeRouter from '@/routes/execute.js';
 
 // Import services
 import { SocketService } from '@/services/SocketService.js';
-import { MatchmakingService } from '@/services/MatchmakingService.js';
 
 // Create Express app
 const app = express();
@@ -34,6 +33,7 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: corsConfig,
   transports: ['websocket'],
+  pingTimeout: 60000,
 });
 
 // Security middleware
@@ -129,12 +129,8 @@ app.use('*', (_req, res) => {
 // Initialize database and start server
 const startServer = async () => {
   try {
-    // Initialize Socket.IO service
+    // Initialize Socket.IO service (owns matchmaking internally)
     new SocketService(io);
-
-    // Start matchmaking loop
-    const matchmaking = new MatchmakingService(io);
-    matchmaking.start();
 
     // Start server
     const PORT = env.PORT || 4000;
@@ -173,14 +169,17 @@ process.on('SIGINT', () => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', { promise, reason });
-  process.exit(1);
+  const msg = reason instanceof Error ? reason.stack : String(reason);
+  console.error('[UNHANDLED REJECTION]', msg);
+  logger.error('Unhandled Rejection', { reason: msg });
+  // Don't exit — log and continue so the server stays up
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
+  console.error('[UNCAUGHT EXCEPTION]', error.stack || error.message);
   logger.error('Uncaught Exception:', { error: error.message, stack: error.stack });
-  process.exit(1);
+  // Don't exit on non-fatal errors
 });
 
 export { app, server, io };

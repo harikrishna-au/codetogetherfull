@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react';
 interface ProblemPanelProps {
   difficulty: string;
   roomId?: string;
+  initialQuestion?: any;
 }
 
 interface Question {
@@ -21,19 +22,19 @@ interface Question {
   constraints?: string[];
 }
 
-const ProblemPanel: React.FC<ProblemPanelProps> = ({ difficulty, roomId }) => {
-  const [question, setQuestion] = useState<Question | null>(null);
-  const [loading, setLoading] = useState(true);
+const ProblemPanel: React.FC<ProblemPanelProps> = ({ difficulty, roomId, initialQuestion }) => {
+  const [question, setQuestion] = useState<Question | null>(initialQuestion ?? null);
+  const [loading, setLoading] = useState(!initialQuestion);
   const [questionIndex, setQuestionIndex] = useState<number | null>(null);
   const { socket } = useSocket();
 
   useEffect(() => {
-    if (!socket || !roomId) return;
+    if (!socket || !roomId || initialQuestion) return;
 
     const fetchRoomQuestion = () => {
       socket.emit('getRoomQuestion', { roomId }, (response: any) => {
         if (response.success && response.question) {
-          setQuestion(response.question);
+          setQuestion(prev => prev ?? response.question);
           setQuestionIndex(response.questionIndex);
         } else {
           console.error('Failed to fetch room question:', response.error);

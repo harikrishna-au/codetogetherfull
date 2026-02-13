@@ -80,33 +80,45 @@ router.post('/', asyncHandler(async (req: any, res: any) => {
             { user_id: userId, question_id: questionId, completed_at: new Date().toISOString() },
             { onConflict: 'user_id,question_id', ignoreDuplicates: true }
         );
+    }
 
-        // Log to session_history if we have a roomId
-        if (roomId) {
-            // Determine partner from room record
-            const { data: room } = await supabase
-                .from('rooms')
-                .select('participant1_id, participant2_id, created_at')
-                .eq('room_id', roomId)
-                .single();
+    // Log to session_history if we have a roomId (for both run and submit)
+    if (roomId && userId) {
+        // Determine partner from room record
+        const { data: room } = await supabase
+            .from('rooms')
+            .select('participant1_id, participant2_id, question_id, mode, difficulty, created_at')
+            .eq('room_id', roomId)
+            .single();
 
-            if (room) {
-                const partnerId = room.participant1_id === userId
-                    ? room.participant2_id
-                    : room.participant1_id;
-                const durationSeconds = room.created_at
-                    ? Math.round((Date.now() - new Date(room.created_at).getTime()) / 1000)
-                    : null;
+        if (room) {
+            const partnerId = room.participant1_id === userId
+                ? room.participant2_id
+                : room.participant1_id;
+            const durationSeconds = room.created_at
+                ? Math.round((Date.now() - new Date(room.created_at).getTime()) / 1000)
+                : null;
 
-                await supabase.from('session_history').insert({
-                    user_id: userId,
-                    room_id: roomId,
-                    question_id: questionId,
-                    completed_at: new Date().toISOString(),
-                    duration: durationSeconds,
-                    partner_id: partnerId,
-                });
-            }
+            // Save or update session results
+            await supabase.from('session_history').upsert({
+                user_id: userId,
+                room_id: roomId,
+                question_id: questionId,
+                partner_id: partnerId,
+                duration: durationSeconds,
+                test_cases_passed: results.passed,
+                total_test_cases: results.totalTests,
+                runtime_ms: results.overallRuntime,
+                language: language,
+                final_code: code,
+                mode: room.mode,
+                difficulty: room.difficulty,
+                end_reason: visibleOnly ? null : 'both-submitted', // Only set end_reason on full submit
+                completed_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id,room_id',
+                ignoreDuplicates: false // Update if exists
+            });
         }
     }
 

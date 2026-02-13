@@ -2,6 +2,8 @@ import { AuthService } from '@/services/AuthService.js';
 import { logger } from '@/utils/logger.js';
 import { asyncHandler, ValidationError } from '@/utils/errors.js';
 export class AuthController {
+    // Methods handled by Clerk: login, logout, refreshToken are no longer needed
+    // Get current user profile
     static getProfile = asyncHandler(async (req, res) => {
         const userId = req.user?.userId;
         if (!userId) {
@@ -13,6 +15,7 @@ export class AuthController {
             data: profile,
         });
     });
+    // Update user preferences
     static updatePreferences = asyncHandler(async (req, res) => {
         const userId = req.user?.userId;
         const { preferences } = req.body;
@@ -29,7 +32,9 @@ export class AuthController {
             message: 'Preferences updated successfully',
         });
     });
+    // Validate current session
     static validateSession = asyncHandler(async (req, res) => {
+        // If we reach here, the authentication middleware has already validated the session
         const user = req.user;
         const dbUser = req.dbUser;
         res.json({
@@ -46,11 +51,13 @@ export class AuthController {
             },
         });
     });
+    // Get user statistics
     static getUserStats = asyncHandler(async (req, res) => {
         const userId = req.user?.userId;
         if (!userId) {
             throw new ValidationError('User ID is required');
         }
+        // Get user stats from database
         const stats = await AuthService.getUserProfile(userId);
         res.json({
             success: true,
@@ -65,4 +72,3 @@ export class AuthController {
         });
     });
 }
-//# sourceMappingURL=AuthController.js.map

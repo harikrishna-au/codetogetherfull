@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon --exec tsx src/server.ts",
+    "kill": "lsof -t -i :4000 | xargs kill -9",
     "build": "tsc",
     "start": "tsx src/server.ts",
     "seed": "tsx src/scripts/seedDatabase.ts",

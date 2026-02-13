@@ -4,17 +4,21 @@ import { AuthenticationError, sendErrorResponse } from '@/utils/errors.js';
 import { env } from '@/config/env.js';
 import { AuthService } from '@/services/AuthService.js';
 const clerkClient = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
+// Extract token from request
 const extractToken = (req) => {
+    // Check Authorization header
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
         return authHeader.substring(7);
     }
+    // Check cookies
     const cookieToken = req.cookies?.sessionToken;
     if (cookieToken) {
         return cookieToken;
     }
     return null;
 };
+// Authentication middleware
 export const authenticateToken = async (req, res, next) => {
     try {
         const token = extractToken(req);
@@ -22,10 +26,17 @@ export const authenticateToken = async (req, res, next) => {
             throw new AuthenticationError('No authentication token provided');
         }
         try {
+            // Verify token with Clerk
             const tokenPayload = await clerkClient.verifyToken(token);
+            // Get user details from our DB (sync if needed)
+            // We pass the Clerk User ID (sub)
+            // AuthService needs to be updated to handle this
             const { user, dbUser } = await AuthService.validateSession(tokenPayload.sub);
+            // Attach user info to request
             req.user = user;
             req.dbUser = dbUser;
+            // Also attach Clerk Auth info if useful
+            // req.auth = tokenPayload; 
             logger.debug('User authenticated successfully', {
                 userId: user.userId,
                 email: user.email,
@@ -33,6 +44,7 @@ export const authenticateToken = async (req, res, next) => {
             next();
         }
         catch (err) {
+            // If verifyToken fails
             throw new AuthenticationError('Invalid authentication token');
         }
     }
@@ -42,9 +54,11 @@ export const authenticateToken = async (req, res, next) => {
             ip: req.ip,
             userAgent: req.get('User-Agent'),
         });
-        sendErrorResponse(res, error instanceof Error ? error : new AuthenticationError('Authentication failed'));
+        const message = error instanceof Error ? error.message : 'Authentication failed';
+        sendErrorResponse(res, 401, message);
     }
 };
+// Optional authentication middleware
 export const optionalAuth = async (req, _res, next) => {
     try {
         const token = extractToken(req);
@@ -56,6 +70,7 @@ export const optionalAuth = async (req, _res, next) => {
                 req.dbUser = dbUser;
             }
             catch (e) {
+                // Ignore invalid token for optional auth
             }
         }
         next();
@@ -67,10 +82,14 @@ export const optionalAuth = async (req, _res, next) => {
         next();
     }
 };
+// Admin authentication middleware
 export const requireAdmin = async (req, res, next) => {
     try {
+        // First authenticate the user
         await authenticateToken(req, res, () => { });
-        const adminEmails = ['admin@codetogether.com'];
+        // Check if user has admin privileges
+        const adminEmails = ['admin@codetogether.com']; // Add your admin emails
+        // Or check Clerk metadata
         if (!req.user || !adminEmails.includes(req.user.email)) {
             throw new AuthenticationError('Admin access required');
         }
@@ -85,9 +104,11 @@ export const requireAdmin = async (req, res, next) => {
             error: error instanceof Error ? error.message : 'Unknown error',
             userId: req.user?.userId,
         });
-        sendErrorResponse(res, error instanceof Error ? error : new AuthenticationError('Admin access denied'));
+        const message = error instanceof Error ? error.message : 'Admin access denied';
+        sendErrorResponse(res, 403, message);
     }
 };
+// Rate limiting by user
 export const rateLimitByUser = (maxRequests, windowMs) => {
     const userRequests = new Map();
     return (req, res, next) => {
@@ -98,6 +119,7 @@ export const rateLimitByUser = (maxRequests, windowMs) => {
         const now = Date.now();
         const userLimit = userRequests.get(userId);
         if (!userLimit || now > userLimit.resetTime) {
+            // Reset or create new limit
             userRequests.set(userId, {
                 count: 1,
                 resetTime: now + windowMs,
@@ -122,6 +144,7 @@ export const rateLimitByUser = (maxRequests, windowMs) => {
         next();
     };
 };
+// Socket authentication middleware
 export const authenticateSocket = async (token) => {
     try {
         if (!token) {
@@ -142,4 +165,3 @@ export const authenticateSocket = async (token) => {
         throw error;
     }
 };
-//# sourceMappingURL=auth.js.map

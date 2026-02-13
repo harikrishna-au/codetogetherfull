@@ -72,7 +72,8 @@ export const authenticateToken = async (
       userAgent: req.get('User-Agent'),
     });
 
-    sendErrorResponse(res, error instanceof Error ? error : new AuthenticationError('Authentication failed'));
+    const message = error instanceof Error ? error.message : 'Authentication failed';
+    sendErrorResponse(res, 401, message);
   }
 };
 
@@ -136,7 +137,8 @@ export const requireAdmin = async (
       userId: req.user?.userId,
     });
 
-    sendErrorResponse(res, error instanceof Error ? error : new AuthenticationError('Admin access denied'));
+    const message = error instanceof Error ? error.message : 'Admin access denied';
+    sendErrorResponse(res, 403, message);
   }
 };
 

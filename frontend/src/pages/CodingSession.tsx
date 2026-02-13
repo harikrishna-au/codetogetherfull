@@ -22,7 +22,7 @@ const CodingSession = () => {
   const params = useParams();
   const { socket } = useSocket();
   const navigate = useNavigate();
-  const { mode, difficulty } = location.state || { mode: 'friendly', difficulty: 'easy' };
+  const { mode, difficulty, question: locationQuestion } = location.state || { mode: 'friendly', difficulty: 'easy' };
   const roomId = params.roomId;
   const userName = user?.displayName || user?.email || 'You';
 
@@ -51,6 +51,8 @@ const CodingSession = () => {
   }, [user, roomId, navigate]);
 
   const [matchState, setMatchState] = useState<'waiting' | 'matched'>('matched');
+  // Initialize starter code from location state (avoids waiting for getRoomQuestion socket call)
+  const locationQuestionInitialized = useRef(false);
   const [isVideoOn, setIsVideoOn] = useState(false);
   const [isAudioOn, setIsAudioOn] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -60,7 +62,7 @@ const CodingSession = () => {
 
 }`);
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('javascript');
-  const [questionId, setQuestionId] = useState<string | null>(null);
+  const [questionId, setQuestionId] = useState<string | null>(locationQuestion?.id ?? null);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [executeResult, setExecuteResult] = useState<ExecuteResult | null>(null);
@@ -75,7 +77,7 @@ const CodingSession = () => {
   });
 
   // Yjs real-time collaboration + awareness (cursors / typing indicator)
-  const { bindToMonaco, resetContent, partnerUsers, partnerTyping } = useYjsCollaboration({
+  const { bindToMonaco, resetContent, getContent, partnerUsers, partnerTyping, isContentEmpty } = useYjsCollaboration({
     socket,
     roomId,
     userId: user?.id ?? '',
@@ -89,6 +91,23 @@ const CodingSession = () => {
       return;
     }
     try {
+      // Save current session results before ending
+      await fetch(API_ENDPOINTS.SAVE_SESSION_RESULTS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          roomId,
+          testCasesPassed: executeResult?.passed || 0,
+          totalTestCases: executeResult?.totalTests || 0,
+          runtime: executeResult?.overallRuntime || 0,
+          language: selectedLanguage,
+          finalCode: getContent() || code,
+          endReason: 'user-exit'
+        }),
+      });
+
+      // End the room
       const res = await fetch(API_ENDPOINTS.END_ROOM, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,10 +118,9 @@ const CodingSession = () => {
         const data = await res.json();
         throw new Error(data.error || 'Failed to end session');
       }
-      toast.success('Session ended!');
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1200);
+
+      // Navigate to results page
+      navigate(`/session/${roomId}/results`, { replace: true });
     } catch (err: any) {
       toast.error(err.message || 'Failed to end session');
     }
@@ -124,7 +142,20 @@ const CodingSession = () => {
           });
           socket.emit('getRoomQuestion', { roomId }, (res: any) => {
             if (res?.success && res.question?.id) {
-              setQuestionId(res.question.id);
+              setQuestionId(prev => prev ?? res.question.id);
+              // Initialize editor content if Yjs doc is empty and we have starter code
+              if (res.question.starterCode && isContentEmpty()) {
+                console.log('[CodingSession] Initializing Yjs doc with starter code');
+                let codeToSet = '';
+                if (typeof res.question.starterCode === 'object') {
+                  codeToSet = res.question.starterCode[selectedLanguage] ||
+                    res.question.starterCode['javascript'] ||
+                    Object.values(res.question.starterCode)[0] as string;
+                } else {
+                  codeToSet = String(res.question.starterCode);
+                }
+                resetContent(codeToSet);
+              }
             }
           });
         });
@@ -136,7 +167,7 @@ const CodingSession = () => {
     tryJoinRoom();
 
     // Handle both roomClosed and room-exit events to ensure all users are redirected
-    const handleRoomSessionEnd = (event: 'roomClosed' | 'room-exit', data: any) => {
+    const handleRoomSessionEnd = async (event: 'roomClosed' | 'room-exit', data: any) => {
       if (event === 'roomClosed') {
         console.log('[Socket] (frontend) Received roomClosed event for roomId:', data.roomId);
         toast.error('The other user has exited. Session closed.');
@@ -145,11 +176,33 @@ const CodingSession = () => {
         if (data.reason === 'timer-expired') {
           toast.error('⏰ Time\'s up! Session has ended.');
         } else {
-          toast.error('A user has left the session. You will be redirected.');
+          toast.error('A user has left the session.');
         }
       }
+
+      // Save session results before redirecting
+      try {
+        await fetch(API_ENDPOINTS.SAVE_SESSION_RESULTS, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            roomId: data.roomId || roomId,
+            testCasesPassed: executeResult?.passed || 0,
+            totalTestCases: executeResult?.totalTests || 0,
+            runtime: executeResult?.overallRuntime || 0,
+            language: selectedLanguage,
+            finalCode: getContent() || code,
+            endReason: data.reason || 'partner-exit'
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to save session results:', err);
+      }
+
+      // Navigate to results page
       setTimeout(() => {
-        window.location.href = '/';
+        navigate(`/session/${data.roomId || roomId}/results`, { replace: true });
       }, 1500);
     };
     socket.on('roomClosed', (data) => handleRoomSessionEnd('roomClosed', data));
@@ -193,6 +246,22 @@ const CodingSession = () => {
     };
   }, [socket, roomId]);
 
+  // Apply starter code from location state once Yjs is ready
+  useEffect(() => {
+    if (locationQuestion?.starterCode && isContentEmpty() && !locationQuestionInitialized.current) {
+      locationQuestionInitialized.current = true;
+      let codeToSet = '';
+      if (typeof locationQuestion.starterCode === 'object') {
+        codeToSet = locationQuestion.starterCode[selectedLanguage] ||
+          locationQuestion.starterCode['javascript'] ||
+          Object.values(locationQuestion.starterCode)[0] as string;
+      } else {
+        codeToSet = String(locationQuestion.starterCode);
+      }
+      if (codeToSet) resetContent(codeToSet);
+    }
+  }, [locationQuestion, isContentEmpty, resetContent, selectedLanguage]);
+
   // Chat logic
   const { chatMessage, setChatMessage, chatMessages, handleSendMessage } = useChat({
     socket,
@@ -203,7 +272,18 @@ const CodingSession = () => {
   // Called when local user picks a different language
   const handleLanguageChange = (lang: SupportedLanguage) => {
     setSelectedLanguage(lang);
-    const template = languageTemplates[lang];
+    // Use problem-specific starter code for the new language if available
+    const questionStarter = locationQuestion?.starterCode;
+    let template: string;
+    if (questionStarter) {
+      if (typeof questionStarter === 'object') {
+        template = questionStarter[lang] || questionStarter['javascript'] || languageTemplates[lang];
+      } else {
+        template = languageTemplates[lang];
+      }
+    } else {
+      template = languageTemplates[lang];
+    }
     // Reset Yjs doc — propagates to partner automatically
     resetContent(template);
     // Notify partner's language selector UI
@@ -217,6 +297,8 @@ const CodingSession = () => {
       toast.error('Question not loaded yet. Please wait.');
       return;
     }
+    // Read current content from Yjs doc (React `code` state is stale in Yjs mode)
+    const currentCode = getContent() || code;
     const visibleOnly = mode === 'run';
     setIsSubmitting(true);
     setExecuteResult(null);
@@ -225,7 +307,7 @@ const CodingSession = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ code, language: selectedLanguage, questionId, visibleOnly, roomId }),
+        body: JSON.stringify({ code: currentCode, language: selectedLanguage, questionId, visibleOnly, roomId }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -266,7 +348,7 @@ const CodingSession = () => {
           <ResizablePanelGroup direction="horizontal" className="flex-1">
             {/* Left Panel - Problem Description */}
             <ResizablePanel defaultSize={35} minSize={25}>
-              <ProblemPanel difficulty={difficulty} roomId={roomId} />
+              <ProblemPanel difficulty={difficulty} roomId={roomId} initialQuestion={locationQuestion} />
             </ResizablePanel>
 
             <ResizableHandle withHandle />

@@ -1,69 +1,70 @@
 import { env } from '@/config/env.js';
-import { User } from '@/models/User.js';
-import { UserState } from '@/models/UserState.js';
+import { supabase } from '@/config/supabase.js';
 import { logger } from '@/utils/logger.js';
 import { AuthenticationError, ValidationError } from '@/utils/errors.js';
 import { createClerkClient } from '@clerk/clerk-sdk-node';
 const clerkClient = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
 export class AuthService {
+    // Validate session (sync user from Clerk if needed)
     static async validateSession(userId) {
         try {
             if (!userId) {
                 throw new ValidationError('User ID is required');
             }
-            let dbUser = await User.findOne({ userId: userId });
+            // Check if user exists in Supabase
+            const { data: dbUser, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('user_id', userId)
+                .single();
             let userEmail = '';
             let userDisplayName = '';
-            if (!dbUser) {
+            if (error || !dbUser) {
+                // Fetch user from Clerk to create in DB
                 const clerkUser = await clerkClient.users.getUser(userId);
                 userEmail = clerkUser.emailAddresses.find(e => e.id === clerkUser.primaryEmailAddressId)?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress || '';
                 userDisplayName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || userEmail;
-                dbUser = new User({
-                    userId: userId,
+                // Create new user in Supabase
+                const { error: createError } = await supabase.from('users').insert({
+                    user_id: userId,
                     email: userEmail,
-                    displayName: userDisplayName,
-                    createdAt: new Date(),
-                    lastLogin: new Date(),
-                    completedQuestions: [],
-                    sessionHistory: [],
+                    display_name: userDisplayName,
+                    created_at: new Date().toISOString(),
+                    last_login: new Date().toISOString(),
                     preferences: {
                         preferredDifficulty: 'Easy',
                         preferredLanguage: 'javascript',
-                    },
+                    }
                 });
-                await dbUser.save();
-                logger.info('New user synced from Clerk', {
+                if (createError) {
+                    logger.error('Failed to create user in Supabase:', createError);
+                    throw new Error('Failed to create user');
+                }
+                logger.info('New user synced from Clerk to Supabase', {
                     userId,
                     email: userEmail,
                 });
-                const userState = new UserState({
-                    userId: userId,
+                // Initialize UserState in Supabase
+                await supabase.from('user_states').upsert({
+                    user_id: userId,
                     state: 'idle',
-                    lastActive: new Date(),
-                    isActive: true,
+                    last_active: new Date().toISOString(),
+                    is_active: true
                 });
-                await userState.save();
             }
             else {
-                dbUser.lastLogin = new Date();
-                await dbUser.save();
-                let userState = await UserState.findOne({ userId: userId });
-                if (!userState) {
-                    userState = new UserState({
-                        userId,
-                        state: 'idle',
-                        lastActive: new Date(),
-                        isActive: true,
-                    });
-                }
-                else {
-                    userState.isActive = true;
-                    userState.lastActive = new Date();
-                }
-                await userState.save();
+                // Update last login
+                await supabase.from('users').update({ last_login: new Date().toISOString() }).eq('user_id', userId);
+                // Only update last_active — do NOT overwrite state/room_id/queue so active sessions survive reconnect
+                await supabase.from('user_states').upsert({
+                    user_id: userId,
+                    last_active: new Date().toISOString(),
+                    is_active: true
+                }, { onConflict: 'user_id' });
                 userEmail = dbUser.email;
-                userDisplayName = dbUser.displayName || '';
+                userDisplayName = dbUser.display_name || '';
             }
+            // Return a user object compatible with legacy types if needed
             const user = {
                 userId,
                 email: userEmail,
@@ -71,7 +72,7 @@ export class AuthService {
             };
             return {
                 user,
-                dbUser,
+                dbUser: dbUser || { userId, email: userEmail, displayName: userDisplayName }, // Return minimal if created
             };
         }
         catch (error) {
@@ -79,19 +80,20 @@ export class AuthService {
             throw error;
         }
     }
+    // Logout user
     static async logoutUser(userId) {
         try {
-            const userState = await UserState.findOne({ userId: userId });
-            if (userState) {
-                userState.isActive = false;
-                userState.state = 'idle';
-                userState.socketId = undefined;
-                userState.roomId = undefined;
-                userState.mode = undefined;
-                userState.difficulty = undefined;
-                userState.queueJoinedAt = undefined;
-                await userState.save();
-            }
+            // Update user state to inactive
+            await supabase.from('user_states').update({
+                is_active: false,
+                state: 'idle',
+                socket_id: null,
+                room_id: null,
+                mode: null,
+                difficulty: null,
+                queue_joined_at: null,
+                last_active: new Date().toISOString()
+            }).eq('user_id', userId);
             logger.info('User logged out successfully', { userId });
         }
         catch (error) {
@@ -99,32 +101,41 @@ export class AuthService {
             throw error;
         }
     }
+    // Get user profile
     static async getUserProfile(userId) {
         try {
-            const dbUser = await User.findOne({ userId: userId });
-            if (!dbUser) {
+            const { data: dbUser, error } = await supabase
+                .from('users')
+                .select(`
+          *,
+          user_states (*),
+          completed_questions (count),
+          session_history (count)
+        `)
+                .eq('user_id', userId)
+                .single();
+            if (error || !dbUser) {
                 throw new AuthenticationError('User not found');
             }
-            const userState = await UserState.findOne({ userId: userId });
+            const userState = dbUser.user_states ? (Array.isArray(dbUser.user_states) ? dbUser.user_states[0] : dbUser.user_states) : null;
             return {
                 user: {
-                    userId: dbUser.userId,
+                    userId: dbUser.user_id,
                     email: dbUser.email,
-                    displayName: dbUser.displayName,
-                    createdAt: dbUser.createdAt,
-                    lastLogin: dbUser.lastLogin,
-                    completedQuestions: dbUser.completedQuestions,
+                    displayName: dbUser.display_name,
+                    createdAt: dbUser.created_at,
+                    lastLogin: dbUser.last_login,
                     preferences: dbUser.preferences,
                 },
                 state: userState ? {
                     state: userState.state,
-                    isActive: userState.isActive,
-                    lastActive: userState.lastActive,
-                    roomId: userState.roomId,
+                    isActive: userState.is_active,
+                    lastActive: userState.last_active,
+                    roomId: userState.room_id,
                 } : null,
                 stats: {
-                    totalQuestionsCompleted: dbUser.completedQuestions.length,
-                    totalSessions: dbUser.sessionHistory.length,
+                    totalQuestionsCompleted: dbUser.completed_questions?.[0]?.count || 0, // Approx count from relational query
+                    totalSessions: dbUser.session_history?.[0]?.count || 0,
                 },
             };
         }
@@ -133,14 +144,20 @@ export class AuthService {
             throw error;
         }
     }
+    // Update user preferences
     static async updateUserPreferences(userId, preferences) {
         try {
-            const dbUser = await User.findOne({ userId: userId });
-            if (!dbUser) {
-                throw new AuthenticationError('User not found');
-            }
-            dbUser.preferences = { ...dbUser.preferences, ...preferences };
-            await dbUser.save();
+            // First get existing preferences to merge
+            const { data: user } = await supabase.from('users').select('preferences').eq('user_id', userId).single();
+            const currentPrefs = user?.preferences || {};
+            const { error } = await supabase
+                .from('users')
+                .update({
+                preferences: { ...currentPrefs, ...preferences }
+            })
+                .eq('user_id', userId);
+            if (error)
+                throw error;
             logger.info('User preferences updated', { userId, preferences });
         }
         catch (error) {
@@ -149,4 +166,3 @@ export class AuthService {
         }
     }
 }
-//# sourceMappingURL=AuthService.js.map

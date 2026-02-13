@@ -4,6 +4,7 @@ node_modules/
 # Ignore build output
 /dist/
 /build/
+backend/dist/
 
 # Ignore logs
 *.log

@@ -41,13 +41,23 @@ create table if not exists session_history (
   question_id text not null,
   completed_at timestamptz default now(),
   duration integer, -- in seconds
-  partner_id text
+  partner_id text,
+  test_cases_passed integer,
+  total_test_cases integer,
+  runtime_ms integer,
+  language text,
+  final_code text,
+  mode text,
+  difficulty text,
+  end_reason text -- 'timer-expired', 'both-submitted', 'partner-exit', 'user-exit'
 );
 
 -- Indexes for performance
 create index if not exists idx_user_states_state on user_states(state);
 create index if not exists idx_user_states_is_active on user_states(is_active);
 create index if not exists idx_user_states_last_active on user_states(last_active);
+create index if not exists idx_session_history_room_id on session_history(room_id);
+create index if not exists idx_session_history_end_reason on session_history(end_reason);
 
 -- Questions Table
 create table if not exists questions (

@@ -48,11 +48,13 @@ export interface PartnerUser {
 export interface YjsCollaboration {
   bindToMonaco: (editor: any, monaco: any) => void;
   resetContent: (template: string) => void;
+  getContent: () => string;
   awareness: Awareness;
   /** All remote users currently in the doc (empty until partner joins) */
   partnerUsers: PartnerUser[];
   /** True while any partner has moved their cursor in the last 1.5 s */
   partnerTyping: boolean;
+  isContentEmpty: () => boolean;
 }
 
 interface Options {
@@ -65,25 +67,25 @@ interface Options {
 // ---- hook ----
 
 export function useYjsCollaboration({ socket, roomId, userId, userName }: Options): YjsCollaboration {
-  const ydocRef   = useRef<Y.Doc>(new Y.Doc());
+  const ydocRef = useRef<Y.Doc>(new Y.Doc());
   const awarenessRef = useRef<Awareness>(new Awareness(ydocRef.current));
-  const bindingRef   = useRef<MonacoBinding | null>(null);
-  const typingTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bindingRef = useRef<MonacoBinding | null>(null);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [partnerUsers,  setPartnerUsers]  = useState<PartnerUser[]>([]);
+  const [partnerUsers, setPartnerUsers] = useState<PartnerUser[]>([]);
   const [partnerTyping, setPartnerTyping] = useState(false);
 
   // Snapshot helper — reads all remote awareness states and updates React state
   const refreshPartnerUsers = useCallback(() => {
     const awareness = awarenessRef.current;
-    const ydoc      = ydocRef.current;
+    const ydoc = ydocRef.current;
     const users: PartnerUser[] = [];
     awareness.getStates().forEach((state, clientId) => {
       if (clientId !== ydoc.clientID && state?.user) {
         users.push({
           clientId,
-          id:    state.user.id    ?? String(clientId),
-          name:  state.user.name  ?? 'Partner',
+          id: state.user.id ?? String(clientId),
+          name: state.user.name ?? 'Partner',
           color: state.user.color ?? '#888',
         });
       }
@@ -94,7 +96,7 @@ export function useYjsCollaboration({ socket, roomId, userId, userName }: Option
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    const ydoc      = ydocRef.current;
+    const ydoc = ydocRef.current;
     const awareness = awarenessRef.current;
 
     // Identify this user so y-monaco can label our own cursor
@@ -118,8 +120,8 @@ export function useYjsCollaboration({ socket, roomId, userId, userName }: Option
     };
 
     socket.on('yjs:sync-response', handleSyncResponse);
-    socket.on('yjs:update',        handleYjsUpdate);
-    socket.on('yjs:awareness',     handleAwareness);
+    socket.on('yjs:update', handleYjsUpdate);
+    socket.on('yjs:awareness', handleAwareness);
 
     // ---- outgoing: relay local doc changes ----
     const handleDocUpdate = (update: Uint8Array, origin: unknown) => {
@@ -161,8 +163,8 @@ export function useYjsCollaboration({ socket, roomId, userId, userName }: Option
 
     return () => {
       socket.off('yjs:sync-response', handleSyncResponse);
-      socket.off('yjs:update',        handleYjsUpdate);
-      socket.off('yjs:awareness',     handleAwareness);
+      socket.off('yjs:update', handleYjsUpdate);
+      socket.off('yjs:awareness', handleAwareness);
       ydoc.off('update', handleDocUpdate);
       awareness.off('change', handleAwarenessChange);
       if (typingTimer.current) clearTimeout(typingTimer.current);
@@ -193,5 +195,14 @@ export function useYjsCollaboration({ socket, roomId, userId, userName }: Option
     });
   }, []);
 
-  return { bindToMonaco, resetContent, awareness: awarenessRef.current, partnerUsers, partnerTyping };
+  const getContent = useCallback(() => {
+    return ydocRef.current.getText('monaco').toString();
+  }, []);
+
+  const isContentEmpty = useCallback(() => {
+    const yText = ydocRef.current.getText('monaco');
+    return yText.length === 0;
+  }, []);
+
+  return { bindToMonaco, resetContent, getContent, awareness: awarenessRef.current, partnerUsers, partnerTyping, isContentEmpty };
 }
