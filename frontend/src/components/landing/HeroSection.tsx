@@ -249,7 +249,7 @@ const HeroSection = ({
 			</motion.div>
 
 			{/* ── Mode & Difficulty Selection ── */}
-			<div
+			{/* <div
 				id="mode-select"
 				className="w-full max-w-4xl mx-auto mt-24 text-center"
 			>
@@ -316,7 +316,7 @@ const HeroSection = ({
 						</div>
 					</motion.div>
 				)}
-			</div>
+			</div> */}
 		</section>
 	);
 };
