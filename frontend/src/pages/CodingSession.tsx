@@ -10,6 +10,7 @@ import ProblemPanel from '@/components/session/ProblemPanel';
 import EditorPanel, { languageTemplates, type SupportedLanguage } from '@/components/session/EditorPanel';
 import ResultsPanel from '@/components/session/ResultsPanel';
 import ChatSidebar from '@/components/session/ChatSidebar';
+import VideoPanel from '@/components/session/VideoPanel';
 import { useChat } from '@/hooks/useChat';
 import ActiveUserHeartbeat from '@/components/ActiveUserHeartbeat';
 import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
@@ -410,6 +411,18 @@ const CodingSession = () => {
 
             {/* Right Panel – Editor + Results */}
             <ResizablePanel defaultSize={65}>
+              <div className="flex flex-col h-full">
+              {/* Persistent video panel — visible when camera is on */}
+              {isVideoOn && (
+                <VideoPanel
+                  localStream={localStream}
+                  remoteStream={remoteStream}
+                  isVideoOn={isVideoOn}
+                  isAudioOn={isAudioOn}
+                  isConnected={isWebRTCConnected}
+                />
+              )}
+              <div className="flex-1 overflow-hidden">
               <ResizablePanelGroup direction="vertical">
                 <ResizablePanel defaultSize={70} minSize={50}>
                   <EditorPanel
@@ -432,9 +445,6 @@ const CodingSession = () => {
                     setIsChatOpen={setIsChatOpen}
                     handleExitSession={handleExitSession}
                     roomId={roomId || ''}
-                    localStream={localStream}
-                    remoteStream={remoteStream}
-                    isWebRTCConnected={isWebRTCConnected}
                   />
                 </ResizablePanel>
 
@@ -444,6 +454,8 @@ const CodingSession = () => {
                   <ResultsPanel isSubmitting={isSubmitting} executeResult={executeResult} />
                 </ResizablePanel>
               </ResizablePanelGroup>
+              </div>
+              </div>
             </ResizablePanel>
           </ResizablePanelGroup>
 

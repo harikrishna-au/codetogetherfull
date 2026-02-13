@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Play, Loader2, Video, VideoOff, Mic, MicOff, MessageSquare, LogOut, CheckCircle } from 'lucide-react';
-import CameraHoverPreview from './CameraHoverPreview';
 import RoomTimer from '@/components/RoomTimer';
 import { toast } from 'sonner';
 import type { PartnerUser } from '@/hooks/useYjsCollaboration';
@@ -213,9 +212,6 @@ interface EditorPanelProps {
   setIsChatOpen: (v: (prev: boolean) => boolean) => void;
   handleExitSession: () => void;
   roomId: string;
-  localStream?: MediaStream | null;
-  remoteStream?: MediaStream | null;
-  isWebRTCConnected?: boolean;
 }
 
 const EditorPanel: React.FC<EditorPanelProps> = ({
@@ -227,9 +223,6 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
   isChatOpen, setIsChatOpen,
   handleExitSession,
   roomId,
-  localStream = null,
-  remoteStream = null,
-  isWebRTCConnected = false,
 }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('javascript');
   // Inject y-monaco cursor CSS once when the editor is first used
@@ -401,28 +394,14 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
               </>
             )}
           </Button>
-          {/* Session Controls beside submit */}
-          <div className="relative group">
-            <button
-              onClick={() => setIsVideoOn((v) => !v)}
-              className={`p-2 rounded transition-colors duration-150 focus:outline-none ${isVideoOn ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-              title={isVideoOn ? 'Turn off video' : 'Turn on video'}
-            >
-              {isVideoOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-            </button>
-            {/* Hover Preview Popover */}
-            <div className="absolute left-1/2 -translate-x-1/2 mt-2 z-40 hidden group-hover:block">
-              <div className="bg-white text-black rounded shadow-lg p-2 min-w-[220px]">
-                <CameraHoverPreview
-                  isVideoOn={isVideoOn}
-                  isAudioOn={isAudioOn}
-                  localStream={localStream}
-                  remoteStream={remoteStream}
-                  isConnected={isWebRTCConnected}
-                />
-              </div>
-            </div>
-          </div>
+          {/* Video toggle */}
+          <button
+            onClick={() => setIsVideoOn((v) => !v)}
+            className={`p-2 rounded transition-colors duration-150 focus:outline-none ${isVideoOn ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+            title={isVideoOn ? 'Turn off video' : 'Turn on video'}
+          >
+            {isVideoOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+          </button>
           <button
             onClick={() => setIsAudioOn((a) => !a)}
             className={`p-2 rounded transition-colors duration-150 focus:outline-none ${isAudioOn ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
