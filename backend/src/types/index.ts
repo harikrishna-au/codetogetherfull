@@ -174,6 +174,8 @@ export interface ClientToServerEvents {
   fetchChatHistory: (data: { roomId: string }, callback?: (response: any) => void) => void;
   getRoomQuestion: (data: { roomId: string }, callback?: (response: any) => void) => void;
   submissionResult: (data: { roomId: string; userId?: string; passed: number; total: number }) => void;
+  submissionWin: (data: { roomId: string; passed: number; total: number; runtime: number; language: string }) => void;
+  syncCode: (data: { roomId: string; code: string }) => void;
   // Yjs collaborative editing
   'yjs:sync-request': (data: { roomId: string }) => void;
   'yjs:update': (data: { roomId: string; update: string }) => void;
@@ -194,6 +196,8 @@ export interface ServerToClientEvents {
   'room-exit': (data: { roomId: string; leaver: string; reason: string }) => void;
   userJoined: (data: { userId: string; timestamp: number }) => void;
   submissionResult: (data: { userId: string; passed: number; total: number; timestamp: number }) => void;
+  roundWinner: (data: { winnerId: string; passed: number; total: number; runtime: number; language: string; timestamp: number }) => void;
+  codeSynced: (data: { initiatorId: string; code: string }) => void;
   // Yjs collaborative editing
   'yjs:sync-response': (data: { state: string }) => void;
   'yjs:update': (data: { update: string }) => void;

@@ -199,6 +199,8 @@ interface EditorPanelProps {
   language?: SupportedLanguage;
   /** Called after Monaco mounts — used to attach Yjs binding */
   onEditorMount?: (editor: any, monaco: any) => void;
+  /** Explicitly unbind Yjs when sync is disabled */
+  unbind?: () => void;
   /** Remote users from Yjs awareness (for avatar badges) */
   partnerUsers?: PartnerUser[];
   /** True while the partner moved their cursor in the last 1.5 s */
@@ -218,7 +220,7 @@ interface EditorPanelProps {
 
 const EditorPanel: React.FC<EditorPanelProps> = ({
   code, setCode, isSubmitting, onRun, onSubmit, onLanguageChange,
-  language: controlledLanguage, onEditorMount,
+  language: controlledLanguage, onEditorMount, unbind,
   partnerUsers = [], partnerTyping = false,
   isVideoOn, setIsVideoOn,
   isAudioOn, setIsAudioOn,
@@ -273,8 +275,14 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
     }
   }, []);
 
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+
   // Handle Monaco Editor mount
   const handleEditorDidMount = (editor: any, monaco: any) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+
     // Register completion providers for each language
     Object.keys(languageSuggestions).forEach((lang) => {
       monaco.languages.registerCompletionItemProvider(monacoLanguageMap[lang as SupportedLanguage], {
@@ -305,6 +313,21 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
     // Attach Yjs binding (or any external mount handler)
     onEditorMount?.(editor, monaco);
   };
+
+  // Re-bind or unbind when onEditorMount/unbind props change (e.g. Sync toggle)
+  useEffect(() => {
+    if (editorRef.current && monacoRef.current) {
+      if (onEditorMount) {
+        // Re-bind Yjs
+        onEditorMount(editorRef.current, monacoRef.current);
+      } else if (unbind) {
+        // Unbind Yjs and sync local state with current editor content
+        unbind();
+        const currentVal = editorRef.current.getValue();
+        setCode(currentVal);
+      }
+    }
+  }, [onEditorMount, unbind, setCode]);
 
   return (
     <div className="h-full bg-[#1e1e1e] flex flex-col">
