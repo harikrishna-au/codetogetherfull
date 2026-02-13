@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { SignInButton, UserButton, SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
 import { motion } from 'framer-motion';
+import ActiveUserCount from '@/components/ActiveUserCount';
 
 import { Link } from 'react-router-dom';
 
@@ -51,6 +52,9 @@ const Header = () => {
                 codetogether
               </span>
             </Link>
+
+            {/* Active users */}
+            <ActiveUserCount />
 
             {/* Auth section */}
             <SignedOut>

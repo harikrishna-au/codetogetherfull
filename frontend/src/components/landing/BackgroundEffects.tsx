@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
-import LightRays from "../LightRays";
 
 const CODE_SYMBOLS = [
 	"{",
@@ -46,7 +45,7 @@ const FloatingSymbol = ({ symbol, index }: FloatingSymbolProps) => {
 				...style,
 				fontFamily:
 					"Fira Code, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-				color: `rgba(207, 211, 214, ${0.08 + (index % 3) * 0.04})`, // Slightly higher visibility
+				color: `white`, // Slightly higher visibility
 			}}
 			animate={{
 				y: [0, -20, 0],
@@ -75,25 +74,6 @@ const BackgroundEffects = () => {
 					backgroundImage: `radial-gradient(circle at 25% 25%, white 15%, transparent 50%)`,
 				}}
 			/>
-			<div
-				style={{ width: "100%", height: "600px", position: "relative" }}
-			>
-				<LightRays
-					raysOrigin="top-center"
-					raysColor="#fff"
-					raysSpeed={1}
-					lightSpread={0.8}
-					rayLength={3}
-					followMouse={true}
-					mouseInfluence={0.1}
-					noiseAmount={0}
-					distortion={0}
-					className="custom-rays"
-					pulsating={false}
-					fadeDistance={1}
-					saturation={1}
-				/>
-			</div>
 
 			{/* Top Right Glow */}
 			<div className="absolute -top-[10%] -right-[10%] w-[70%] h-[70%] rounded-full blur-[120px] bg-white/[0.05]" />

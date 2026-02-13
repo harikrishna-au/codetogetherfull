@@ -1,11 +1,12 @@
-import { useNavigate } from "react-router-dom";
-import { motion, useScroll, useTransform, Variants } from "framer-motion";
-import { useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { ModeSelector } from "@/components/ModeSelector";
 import { DifficultySelector } from "@/components/DifficultySelector";
 import { LiveUserCounts } from "@/components/LiveUserCounts";
-import { Zap, ChevronDown, ArrowRight } from "lucide-react";
+import { ModeSelector } from "@/components/ModeSelector";
+import { Button } from "@/components/ui/button";
+import { motion, useScroll, useTransform, Variants } from "framer-motion";
+import { ArrowRight, ChevronDown, Zap } from "lucide-react";
+import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { FlipWords } from "../ui/flip-words";
 
 interface HeroSectionProps {
 	selectedMode: "friendly" | "challenge" | null;
@@ -121,7 +122,10 @@ const HeroSection = ({
 }: HeroSectionProps) => {
 	const navigate = useNavigate();
 	const sectionRef = useRef<HTMLElement>(null);
-
+	const words = [
+		"Code",
+		"Grow",
+	];
 	const { scrollYProgress } = useScroll({
 		target: sectionRef,
 		offset: ["start start", "end start"],
@@ -186,29 +190,10 @@ const HeroSection = ({
 							style={{ fontFamily: codeFont }}
 						>
 							<span className="bg-clip-text text-transparent bg-gradient-to-br from-[#e8eaed] via-[#cfd3d6] to-[#9ca3a9]">
-								Code
-							</span>
-							<span className="text-white/20 mx-1 sm:mx-2 font-light">
-								.
-							</span>
-							<span className="text-white/90">Together</span>
+								<FlipWords words={words} className=" text-white/90 !px-0" duration={1000}/>
+							</span><span className="text-white/20 font-light">.</span><span className="text-white/90">Together</span>
 						</span>
 					</motion.h1>
-
-					<motion.h2 variants={riseVariants} className="mb-8">
-						<span
-							className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1]"
-							style={{ fontFamily: codeFont }}
-						>
-							<span className="bg-clip-text text-transparent bg-gradient-to-br from-[#9ca3a9] via-[#cfd3d6] to-[#e8eaed]">
-								Grow
-							</span>
-							<span className="text-white/20 mx-1 sm:mx-2 font-light">
-								.
-							</span>
-							<span className="text-white/90">Together</span>
-						</span>
-					</motion.h2>
 
 					{/* Metallic accent line */}
 					<motion.div
