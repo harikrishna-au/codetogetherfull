@@ -67,10 +67,10 @@ export const problems: Problem[] = [
         ],
         constraints: ["1 <= s.length <= 10^5", "s[i] is a printable ascii character."],
         starterCode: {
-            javascript: "function reverseString(s) {\n    \n}",
-            python: "def reverseString(s):\n    pass",
-            java: "class Solution {\n    public void reverseString(char[] s) {\n        \n    }\n}",
-            cpp: "class Solution {\npublic:\n    void reverseString(vector<char>& s) {\n        \n    }\n};"
+            javascript: "function reverseString(s) {\n    return s.reverse();\n}",
+            python: "def reverseString(s):\n    return s[::-1]",
+            java: "class Solution {\n    public char[] reverseString(char[] s) {\n        \n    }\n}",
+            cpp: "class Solution {\npublic:\n    vector<char> reverseString(vector<char>& s) {\n        \n    }\n};"
         },
         testCases: [
             { input: { s: ["h", "e", "l", "l", "o"] }, expectedOutput: ["o", "l", "l", "e", "h"], isHidden: false },
@@ -216,8 +216,8 @@ export const problems: Problem[] = [
         starterCode: {
             javascript: "function moveZeroes(nums) {\n    \n}",
             python: "def moveZeroes(nums):\n    pass",
-            java: "class Solution {\n    public void moveZeroes(int[] nums) {\n        \n    }\n}",
-            cpp: "class Solution {\npublic:\n    void moveZeroes(vector<int>& nums) {\n        \n    }\n};"
+            java: "class Solution {\n    public int[] moveZeroes(int[] nums) {\n        \n    }\n}",
+            cpp: "class Solution {\npublic:\n    vector<int> moveZeroes(vector<int>& nums) {\n        \n    }\n};"
         },
         testCases: [
             { input: { nums: [0, 1, 0, 3, 12] }, expectedOutput: [1, 3, 12, 0, 0], isHidden: false },
@@ -282,17 +282,17 @@ export const problems: Problem[] = [
     {
         title: "Add Two Numbers",
         difficulty: "medium",
-        description: "You are given two non-empty linked lists representing two non-negative integers. The digits are stored in reverse order, and each of their nodes contains a single digit. Add the two numbers and return the sum as a linked list.\n\nYou may assume the two numbers do not contain any leading zero, except the number 0 itself.",
+        description: "You are given two non-empty arrays representing two non-negative integers. The digits are stored in reverse order. Add the two numbers and return the sum as an array.",
         examples: [
             { input: "l1 = [2,4,3], l2 = [5,6,4]", output: "[7,0,8]", explanation: "342 + 465 = 807." },
             { input: "l1 = [0], l2 = [0]", output: "[0]" }
         ],
-        constraints: ["The number of nodes in each linked list is in the range [1, 100].", "0 <= Node.val <= 9", "It is guaranteed that the list represents a number that does not have leading zeros."],
+        constraints: ["The number of digits is in the range [1, 100].", "0 <= digit <= 9"],
         starterCode: {
             javascript: "function addTwoNumbers(l1, l2) {\n    \n}",
             python: "def addTwoNumbers(l1, l2):\n    pass",
-            java: "class Solution {\n    public ListNode addTwoNumbers(ListNode l1, ListNode l2) {\n        \n    }\n}",
-            cpp: "class Solution {\npublic:\n    ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {\n        \n    }\n};"
+            java: "class Solution {\n    public int[] addTwoNumbers(int[] l1, int[] l2) {\n        \n    }\n}",
+            cpp: "class Solution {\npublic:\n    vector<int> addTwoNumbers(vector<int>& l1, vector<int>& l2) {\n        \n    }\n};"
         },
         testCases: [
             { input: { l1: [2, 4, 3], l2: [5, 6, 4] }, expectedOutput: [7, 0, 8], isHidden: false },
@@ -460,8 +460,8 @@ export const problems: Problem[] = [
         starterCode: {
             javascript: "function rotate(matrix) {\n    \n}",
             python: "def rotate(matrix):\n    pass",
-            java: "class Solution {\n    public void rotate(int[][] matrix) {\n        \n    }\n}",
-            cpp: "class Solution {\npublic:\n    void rotate(vector<vector<int>>& matrix) {\n        \n    }\n};"
+            java: "class Solution {\n    public int[][] rotate(int[][] matrix) {\n        \n    }\n}",
+            cpp: "class Solution {\npublic:\n    vector<vector<int>> rotate(vector<vector<int>>& matrix) {\n        \n    }\n};"
         },
         testCases: [
             { input: { matrix: [[1, 2, 3], [4, 5, 6], [7, 8, 9]] }, expectedOutput: [[7, 4, 1], [8, 5, 2], [9, 6, 3]], isHidden: false },
@@ -571,7 +571,7 @@ export const problems: Problem[] = [
     {
         title: "Merge k Sorted Lists",
         difficulty: "hard",
-        description: "You are given an array of k linked-lists lists, each linked-list is sorted in ascending order.\n\nMerge all the linked-lists into one sorted linked-list and return it.",
+        description: "You are given an array of k arrays, each array is sorted in ascending order.\n\nMerge all the arrays into one sorted array and return it.",
         examples: [
             { input: "lists = [[1,4,5],[1,3,4],[2,6]]", output: "[1,1,2,3,4,4,5,6]" },
             { input: "lists = []", output: "[]" }
@@ -580,8 +580,8 @@ export const problems: Problem[] = [
         starterCode: {
             javascript: "function mergeKLists(lists) {\n    \n}",
             python: "def mergeKLists(lists):\n    pass",
-            java: "class Solution {\n    public ListNode mergeKLists(ListNode[] lists) {\n        \n    }\n}",
-            cpp: "class Solution {\npublic:\n    ListNode* mergeKLists(vector<ListNode*>& lists) {\n        \n    }\n};"
+            java: "class Solution {\n    public int[] mergeKLists(int[][] lists) {\n        \n    }\n}",
+            cpp: "class Solution {\npublic:\n    vector<int> mergeKLists(vector<vector<int>>& lists) {\n        \n    }\n};"
         },
         testCases: [
             { input: { lists: [[1, 4, 5], [1, 3, 4], [2, 6]] }, expectedOutput: [1, 1, 2, 3, 4, 4, 5, 6], isHidden: false },

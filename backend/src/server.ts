@@ -20,6 +20,7 @@ import questionsRouter from '@/routes/questions.js';
 import testCasesRouter from '@/routes/testcases.js';
 import queueRouter from '@/routes/queue.js';
 import roomsRouter from '@/routes/rooms.js';
+import executeRouter from '@/routes/execute.js';
 
 // Import services
 import { SocketService } from '@/services/SocketService.js';
@@ -74,6 +75,7 @@ app.use('/api/questions', questionsRouter);
 app.use('/api/testcases', testCasesRouter);
 app.use('/api/queue', queueRouter);
 app.use('/api/rooms', roomsRouter);
+app.use('/api/execute', executeRouter);
 
 // Basic API routes
 app.get('/api/status', (_req, res) => {
