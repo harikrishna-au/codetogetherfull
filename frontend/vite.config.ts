@@ -22,10 +22,22 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       buffer: "buffer",
+      process: "process/browser",
+      util: "util",
     },
   },
   define: {
     "global": "window",
     "process.env": {},
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+      plugins: [
+        // Enable esbuild to resolve node modules
+      ],
+    },
   },
 }));

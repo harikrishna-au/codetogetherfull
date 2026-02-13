@@ -8,6 +8,35 @@ const router = express.Router();
 router.get('/', (_req, res) => {
     res.json({ message: 'Session route' });
 });
+// Validate session/room
+router.get('/validate', asyncHandler(async (req: any, res: any) => {
+    const { roomId, userId } = req.query;
+
+    if (!roomId || !userId) {
+        return res.status(400).json({ success: false, error: 'Missing roomId or userId' });
+    }
+
+    const { data: room, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('room_id', roomId)
+        .single();
+
+    if (error || !room) {
+        return res.status(404).json({ success: false, error: 'Room not found' });
+    }
+
+    if (room.status === 'ended') {
+        return res.status(410).json({ success: false, error: 'Room ended' });
+    }
+
+    // Verify user is a participant
+    if (room.participant1_id !== userId && room.participant2_id !== userId) {
+        return res.status(403).json({ success: false, error: 'Not authorized for this room' });
+    }
+
+    res.json({ success: true, valid: true, room });
+}));
 
 // End a room / session
 router.post('/end-room', asyncHandler(async (req: any, res: any) => {
