@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { VideoOff, MicOff } from 'lucide-react';
+import { VideoOff, MicOff, Wifi, WifiOff } from 'lucide-react';
 
 interface VideoPanelProps {
   localStream: MediaStream | null;
@@ -9,9 +9,12 @@ interface VideoPanelProps {
   isConnected: boolean;
 }
 
-const VideoFeed: React.FC<{ stream: MediaStream | null; muted?: boolean; label: string; videoOn: boolean }> = ({
-  stream, muted = false, label, videoOn,
-}) => {
+const VideoFeed: React.FC<{
+  stream: MediaStream | null;
+  muted?: boolean;
+  label: string;
+  videoOn: boolean;
+}> = ({ stream, muted = false, label, videoOn }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -21,7 +24,7 @@ const VideoFeed: React.FC<{ stream: MediaStream | null; muted?: boolean; label: 
   }, [stream]);
 
   return (
-    <div className="relative w-full h-full rounded-md overflow-hidden bg-[#1a1a2e] border border-[#3e3e42]">
+    <div className="relative flex-1 rounded-lg overflow-hidden bg-black border border-white/[0.08]">
       {videoOn && stream ? (
         <video
           ref={videoRef}
@@ -31,11 +34,12 @@ const VideoFeed: React.FC<{ stream: MediaStream | null; muted?: boolean; label: 
           className="w-full h-full object-cover"
         />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <VideoOff className="w-6 h-6 text-[#555]" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+          <VideoOff className="w-8 h-8 text-[#555]" />
+          <span className="text-xs text-[#666]">{videoOn ? 'No stream' : 'Camera off'}</span>
         </div>
       )}
-      <div className="absolute bottom-1 left-1 text-[10px] px-1 py-0.5 rounded bg-black/60 text-white">
+      <div className="absolute bottom-2 left-2 text-[11px] px-2 py-0.5 rounded bg-black/70 text-white font-medium">
         {label}
       </div>
     </div>
@@ -46,32 +50,39 @@ const VideoPanel: React.FC<VideoPanelProps> = ({
   localStream, remoteStream, isVideoOn, isAudioOn, isConnected,
 }) => {
   return (
-    <div className="bg-white text-black rounded-lg shadow-xl p-2 w-[240px]">
-      <div className="text-xs text-gray-500 mb-2 flex items-center justify-between">
-        <span>Video Chat</span>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+    <div className="w-full bg-black border-b border-white/[0.08] px-3 py-2 flex items-stretch gap-3 h-44 shrink-0">
+      {/* Both feeds side by side */}
+      <VideoFeed
+        stream={localStream}
+        muted
+        label="You"
+        videoOn={isVideoOn}
+      />
+      <VideoFeed
+        stream={remoteStream}
+        label="Partner"
+        videoOn={isConnected}
+      />
+
+      {/* Status column */}
+      <div className="flex flex-col justify-between items-end shrink-0 py-1">
+        <div className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full ${
+          isConnected
+            ? 'bg-green-900/50 text-green-400 border border-green-700/50'
+            : 'bg-slate-800 text-slate-500 border border-slate-700'
+        }`}>
+          {isConnected
+            ? <Wifi className="w-3 h-3" />
+            : <WifiOff className="w-3 h-3" />}
           {isConnected ? 'Connected' : 'Waiting…'}
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-2 h-28">
-        <VideoFeed
-          stream={localStream}
-          muted
-          label="You"
-          videoOn={isVideoOn}
-        />
-        <VideoFeed
-          stream={remoteStream}
-          label="Partner"
-          videoOn={isConnected}
-        />
-      </div>
-      {!isAudioOn && (
-        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-500">
-          <MicOff className="w-3 h-3" />
-          <span>Your mic is muted</span>
         </div>
-      )}
+        {!isAudioOn && (
+          <div className="flex items-center gap-1 text-[11px] text-slate-400 bg-slate-800 px-2 py-1 rounded-full border border-slate-700">
+            <MicOff className="w-3 h-3" />
+            <span>Muted</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

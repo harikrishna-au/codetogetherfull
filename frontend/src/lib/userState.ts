@@ -10,6 +10,8 @@ export interface UserStateData {
   updatedAt?: any;
 }
 
+import { API_ENDPOINTS } from './api';
+
 export async function fetchUserState(userId: string, token?: string | null): Promise<UserStateData | null> {
   try {
     const headers: HeadersInit = {
@@ -19,7 +21,7 @@ export async function fetchUserState(userId: string, token?: string | null): Pro
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`http://localhost:4000/api/users/${userId}/state`, {
+    const response = await fetch(`${API_ENDPOINTS.USERS_BASE}/${userId}/state`, {
       method: "GET",
       headers,
       credentials: 'include'

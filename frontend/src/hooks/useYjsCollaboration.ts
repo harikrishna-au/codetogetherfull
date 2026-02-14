@@ -47,6 +47,7 @@ export interface PartnerUser {
 
 export interface YjsCollaboration {
   bindToMonaco: (editor: any, monaco: any) => void;
+  unbind: () => void;
   resetContent: (template: string) => void;
   getContent: () => string;
   awareness: Awareness;
@@ -204,5 +205,13 @@ export function useYjsCollaboration({ socket, roomId, userId, userName }: Option
     return yText.length === 0;
   }, []);
 
-  return { bindToMonaco, resetContent, getContent, awareness: awarenessRef.current, partnerUsers, partnerTyping, isContentEmpty };
+  // Explicitly unbind Monaco from Yjs
+  const unbind = useCallback(() => {
+    if (bindingRef.current) {
+      bindingRef.current.destroy();
+      bindingRef.current = null;
+    }
+  }, []);
+
+  return { bindToMonaco, unbind, resetContent, getContent, awareness: awarenessRef.current, partnerUsers, partnerTyping, isContentEmpty };
 }

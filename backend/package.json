@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "nodemon --exec tsx src/server.ts",
     "kill": "lsof -t -i :4000 | xargs kill -9",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "tsx src/server.ts",
     "seed": "tsx src/scripts/seedDatabase.ts",
     "seed:problems": "tsx src/scripts/seedProblems.ts",
@@ -52,6 +52,7 @@
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "ts-jest": "^29.1.1",
+    "tsc-alias": "^1.8.8",
     "tsx": "^4.6.2",
     "typescript": "^5.3.3"
   },

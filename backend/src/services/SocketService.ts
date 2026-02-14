@@ -195,6 +195,32 @@ export class SocketService {
       });
     });
 
+    // First successful submission wins the round
+    socket.on('submissionWin', (data: { roomId: string; passed: number; total: number; runtime: number; language: string }) => {
+      const userId = socket.user?.userId || 'unknown';
+      logger.info('Submission win', { userId, roomId: data.roomId, passed: data.passed, total: data.total });
+      // Broadcast to everyone in the room (including sender) so all clients know who won
+      this.io.to(data.roomId).emit('roundWinner', {
+        winnerId: userId,
+        passed: data.passed,
+        total: data.total,
+        runtime: data.runtime,
+        language: data.language,
+        timestamp: Date.now(),
+      });
+    });
+
+    // Sync code: one user shares their code to activate collaborative editing
+    socket.on('syncCode', (data: { roomId: string; code: string }) => {
+      const userId = socket.user?.userId || 'unknown';
+      logger.info('Code sync initiated', { userId, roomId: data.roomId });
+      // Broadcast to everyone in the room (including sender) so all clients activate Yjs with this code
+      this.io.to(data.roomId).emit('codeSynced', {
+        initiatorId: userId,
+        code: data.code,
+      });
+    });
+
     // ---- Yjs collaborative editing ----
 
     // New joiner requests the full document state
