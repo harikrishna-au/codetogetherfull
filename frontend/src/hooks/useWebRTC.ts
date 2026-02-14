@@ -36,11 +36,11 @@ export function useWebRTC({ socket, roomId, userId, isVideoOn, isAudioOn }: Opti
   const [isConnected, setIsConnected] = useState(false);
 
   // Stable refs — no re-render needed
-  const streamRef   = useRef<MediaStream | null>(null);
-  const peerRef     = useRef<SimplePeerInstance | null>(null);
-  const socketRef   = useRef<Socket | null>(null);
-  const roomIdRef   = useRef<string | undefined>(undefined);
-  const userIdRef   = useRef<string>('');
+  const streamRef = useRef<MediaStream | null>(null);
+  const peerRef = useRef<SimplePeerInstance | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const roomIdRef = useRef<string | undefined>(undefined);
+  const userIdRef = useRef<string>('');
 
   // Buffer: signals that arrived before the stream was ready
   const pendingSignals = useRef<any[]>([]);
@@ -48,9 +48,9 @@ export function useWebRTC({ socket, roomId, userId, isVideoOn, isAudioOn }: Opti
   const pendingInitiator = useRef<boolean | null>(null);
 
   // Keep socket/room/userId refs current
-  useEffect(() => { socketRef.current  = socket;  }, [socket]);
-  useEffect(() => { roomIdRef.current  = roomId;  }, [roomId]);
-  useEffect(() => { userIdRef.current  = userId;  }, [userId]);
+  useEffect(() => { socketRef.current = socket; }, [socket]);
+  useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
 
   // ── 1. Acquire local media once ──────────────────────────────────────────
   useEffect(() => {
@@ -95,9 +95,9 @@ export function useWebRTC({ socket, roomId, userId, isVideoOn, isAudioOn }: Opti
 
   // ── 3. Core: create / destroy peer ───────────────────────────────────────
   function createPeer(initiator: boolean) {
-    const sock   = socketRef.current;
-    const room   = roomIdRef.current;
-    const uid    = userIdRef.current;
+    const sock = socketRef.current;
+    const room = roomIdRef.current;
+    const uid = userIdRef.current;
     const stream = streamRef.current;
 
     if (!sock || !room || !stream) {
@@ -218,15 +218,15 @@ export function useWebRTC({ socket, roomId, userId, isVideoOn, isAudioOn }: Opti
     };
 
     socket.on('webrtc-signal', handleSignal);
-    socket.on('userJoined',    handleUserJoined);
-    socket.on('roomClosed',    handleUserLeft);
-    socket.on('room-exit',     handleUserLeft);
+    socket.on('userJoined', handleUserJoined);
+    socket.on('roomClosed', handleUserLeft);
+    socket.on('room-exit', handleUserLeft);
 
     return () => {
       socket.off('webrtc-signal', handleSignal);
-      socket.off('userJoined',    handleUserJoined);
-      socket.off('roomClosed',    handleUserLeft);
-      socket.off('room-exit',     handleUserLeft);
+      socket.off('userJoined', handleUserJoined);
+      socket.off('roomClosed', handleUserLeft);
+      socket.off('room-exit', handleUserLeft);
       peerRef.current?.destroy();
       peerRef.current = null;
     };
