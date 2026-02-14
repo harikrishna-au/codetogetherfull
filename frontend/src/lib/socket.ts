@@ -32,7 +32,7 @@ export function getSocket(token: string): Socket {
 
   socket = io(SOCKET_URL, {
     auth: { token },
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     withCredentials: true,
     autoConnect: true,
     reconnection: true,
@@ -41,7 +41,23 @@ export function getSocket(token: string): Socket {
   });
   lastToken = token;
 
+  // Keep the auth token current across reconnect attempts.
+  // socket.io uses socket.auth at reconnect time, so we expose a way to update it.
+  socket.on('reconnect_attempt', () => {
+    if (lastToken) {
+      (socket as any).auth = { token: lastToken };
+    }
+  });
+
   return socket;
+}
+
+/** Call this whenever a fresh Clerk token is obtained — keeps reconnect auth current. */
+export function updateSocketToken(token: string) {
+  lastToken = token;
+  if (socket) {
+    (socket as any).auth = { token };
+  }
 }
 
 export function disconnectSocket() {

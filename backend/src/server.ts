@@ -32,7 +32,8 @@ const server = createServer(app);
 // Create Socket.IO server
 const io = new Server(server, {
   cors: corsConfig,
-  transports: ['websocket'],
+  transports: ['websocket', 'polling'],
+  pingInterval: 25000,
   pingTimeout: 60000,
 });
 

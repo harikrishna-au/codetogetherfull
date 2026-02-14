@@ -31,9 +31,8 @@ export const SessionAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const fetchToken = async () => {
       if (isSignedIn) {
         try {
-          const token = await getToken();
+          const token = await getToken({ skipCache: true });
           setSessionToken(token);
-          // console.log("Clerk Token Retrieved");
         } catch (error) {
           console.error("Error fetching Clerk token:", error);
           setSessionToken(null);
@@ -65,7 +64,7 @@ export const SessionAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       loading,
       refreshToken: async () => {
         if (isSignedIn) {
-          try { setSessionToken(await getToken()); } catch (e) { console.error('Failed to refresh token:', e); }
+          try { setSessionToken(await getToken({ skipCache: true })); } catch (e) { console.error('Failed to refresh token:', e); }
         }
       },
       loginWithSession: async () => { }, // No-op
