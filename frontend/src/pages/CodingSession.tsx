@@ -119,6 +119,11 @@ const CodingSession = () => {
   // Prevent emitting submissionWin more than once per session
   const hasEmittedWin = useRef(false);
 
+  // Refs to avoid stale closures in socket callbacks
+  const executeResultRef = useRef<ExecuteResult | null>(null);
+  const codeRef = useRef<string>(code);
+  const selectedLanguageRef = useRef<SupportedLanguage>(selectedLanguage);
+
   // ── WebRTC ───────────────────────────────────────────────────────────────────
   const { localStream, remoteStream, isConnected: isWebRTCConnected } = useWebRTC({
     socket,
@@ -132,7 +137,10 @@ const CodingSession = () => {
   const { bindToMonaco, resetContent, getContent, partnerUsers, partnerTyping, isContentEmpty } =
     useYjsCollaboration({ socket, roomId, userId: user?.id ?? '', userName });
 
-
+  // Keep refs in sync with latest state for socket callbacks
+  useEffect(() => { executeResultRef.current = executeResult; }, [executeResult]);
+  useEffect(() => { codeRef.current = code; }, [code]);
+  useEffect(() => { selectedLanguageRef.current = selectedLanguage; }, [selectedLanguage]);
 
   // ── Socket events ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -180,8 +188,34 @@ const CodingSession = () => {
     socket.on('codeSynced', handleCodeSynced);
 
     // First successful submission — round winner
-    const handleRoundWinner = (data: WinData) => {
+    const handleRoundWinner = async (data: WinData) => {
       setWinData(data);
+
+      // Only save for the non-winner — the winner's data was already saved
+      // correctly by execute.ts during their submission
+      if (data.winnerId !== user?.id) {
+        try {
+          const curResult = executeResultRef.current;
+          const curCode = isSynced ? (getContent() || codeRef.current) : codeRef.current;
+          await fetch(API_ENDPOINTS.SAVE_SESSION_RESULTS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              roomId,
+              testCasesPassed: curResult?.passed || 0,
+              totalTestCases: curResult?.totalTests || 0,
+              runtime: curResult?.overallRuntime || 0,
+              language: selectedLanguageRef.current,
+              finalCode: curCode,
+              endReason: 'partner-won',
+            }),
+          });
+        } catch {
+          // Don't block navigation if save fails
+        }
+      }
+
       // Auto-dismiss after 6 seconds and go to results
       setTimeout(() => {
         navigate(`/session/${roomId}/results`, { replace: true });
@@ -199,17 +233,19 @@ const CodingSession = () => {
         toast.error('A user has left the session.');
       }
       try {
+        const curResult = executeResultRef.current;
+        const curCode = isSynced ? (getContent() || codeRef.current) : codeRef.current;
         await fetch(API_ENDPOINTS.SAVE_SESSION_RESULTS, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
             roomId: data.roomId || roomId,
-            testCasesPassed: executeResult?.passed || 0,
-            totalTestCases: executeResult?.totalTests || 0,
-            runtime: executeResult?.overallRuntime || 0,
-            language: selectedLanguage,
-            finalCode: isSynced ? (getContent() || code) : code,
+            testCasesPassed: curResult?.passed || 0,
+            totalTestCases: curResult?.totalTests || 0,
+            runtime: curResult?.overallRuntime || 0,
+            language: selectedLanguageRef.current,
+            finalCode: curCode,
             endReason: data.reason || 'partner-exit',
           }),
         });

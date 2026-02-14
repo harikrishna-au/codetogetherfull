@@ -2,6 +2,7 @@ import express from 'express';
 import { supabase } from '../config/supabase.js';
 import { asyncHandler, ValidationError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ router.get('/validate', asyncHandler(async (req: any, res: any) => {
 }));
 
 // End a room / session
-router.post('/end-room', asyncHandler(async (req: any, res: any) => {
+router.post('/end-room', authenticateToken, asyncHandler(async (req: any, res: any) => {
     const { roomId } = req.body;
     const userId = req.user?.userId;
 
@@ -78,7 +79,7 @@ router.post('/end-room', asyncHandler(async (req: any, res: any) => {
 }));
 
 // Get session results for a room
-router.get('/results/:roomId', asyncHandler(async (req: any, res: any) => {
+router.get('/results/:roomId', authenticateToken, asyncHandler(async (req: any, res: any) => {
     const { roomId } = req.params;
     const userId = req.user?.userId;
 
@@ -161,7 +162,7 @@ router.get('/results/:roomId', asyncHandler(async (req: any, res: any) => {
 }));
 
 // Save session results
-router.post('/save-results', asyncHandler(async (req: any, res: any) => {
+router.post('/save-results', authenticateToken, asyncHandler(async (req: any, res: any) => {
     const { roomId, testCasesPassed, totalTestCases, runtime, language, finalCode, endReason } = req.body;
     const userId = req.user?.userId;
 

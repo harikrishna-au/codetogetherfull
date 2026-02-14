@@ -13,7 +13,7 @@ const Matchmaking = () => {
   const location = useLocation();
   const { user } = useSessionAuth();
   const { socket, connected } = useSocket();
-  const { phase, countdown, matchFound, matchedRoomId, matchedQuestion, joinQueue: ctxJoinQueue } = useMatchmaking();
+  const { phase, countdown, matchFound, matchedRoomId, matchedQuestion, joinQueue: ctxJoinQueue, leaveQueue } = useMatchmaking();
 
   const locationState = location.state || { mode: 'friendly', difficulty: 'easy' };
   const [mode] = useState(locationState.mode || 'friendly');
@@ -98,7 +98,7 @@ const Matchmaking = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-white/[0.02] blur-[80px]" />
         </div>
 
-        <Card className="relative bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl max-w-lg w-full shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <Card className="relative z-10 bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl max-w-lg w-full shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           <CardContent className="p-8 text-center">
             {phase === 'matching' ? (
               <>

@@ -239,11 +239,9 @@ export class MatchmakingService {
   }
 
   private emitToSocket(socketId: string, event: string, data: any): void {
-    const socket = this.io.sockets.sockets.get(socketId);
-    if (socket) {
-      socket.emit(event as any, data);
-    } else {
-      logger.warn(`Socket not found for event ${event}`, { socketId });
-    }
+    // io.to(socketId) works even after transport upgrades (polling → websocket)
+    // whereas sockets.get() can miss a socket that upgraded mid-queue
+    this.io.to(socketId).emit(event as any, data);
+    logger.debug(`Emitted ${event} to socket`, { socketId });
   }
 }
