@@ -285,8 +285,23 @@ router.get('/history/:userId', asyncHandler(async (req: Request, res: Response) 
     });
 }));
 
-router.post('/reset', (req: Request, res: Response) => {
-    res.json({ message: 'Users reset' });
-});
+router.post('/reset', asyncHandler(async (_req: Request, res: Response) => {
+    // Reset all non-idle states to idle and clear socket/queue data
+    const { error } = await supabase
+        .from('user_states')
+        .update({
+            state: 'idle',
+            socket_id: null,
+            is_active: false,
+            room_id: null,
+            mode: null,
+            difficulty: null,
+            queue_joined_at: null,
+        })
+        .neq('state', 'idle');
+
+    if (error) throw error;
+    res.json({ success: true, message: 'All user states reset to idle' });
+}));
 
 export default router;

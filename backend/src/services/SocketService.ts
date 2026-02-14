@@ -615,6 +615,24 @@ export class SocketService {
     logger.debug('Notification sent to room', { roomId, event });
   }
 
+  /** Remove a single user from all in-memory queues (e.g. admin cancel). */
+  public removeUserFromQueues(userId: string): void {
+    this.matchmakingService.removeUserFromAllQueues(userId);
+  }
+
+  /** Clear all in-memory matchmaking queues. Returns number of users removed. */
+  public clearAllQueues(): number {
+    const sizes = this.matchmakingService.getQueueSizes();
+    const total = Object.values(sizes).reduce((a, b) => a + b, 0);
+    this.matchmakingService.clearAllQueues();
+    return total;
+  }
+
+  /** Live queue sizes keyed by "mode:difficulty" */
+  public getQueueStats(): Record<string, number> {
+    return this.matchmakingService.getQueueSizes();
+  }
+
   public getConnectedUserCount(): number {
     return this.connectedUsers.size;
   }

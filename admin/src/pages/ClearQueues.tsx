@@ -95,8 +95,9 @@ export default function ClearQueues() {
     setLoading(true);
     setResult(null);
     try {
-      // This would need to be implemented in the backend
-      setResult({ message: 'Room clearing not yet implemented.', type: 'error' });
+      await api.rooms.terminateAll();
+      setResult({ message: 'All active rooms terminated successfully!', type: 'success' });
+      fetchStats();
     } catch (error: any) {
       setResult({ message: 'Error clearing rooms: ' + error.message, type: 'error' });
     }

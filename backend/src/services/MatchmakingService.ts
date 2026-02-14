@@ -69,6 +69,14 @@ export class MatchmakingService {
     }
   }
 
+  /** Remove every user from every queue. */
+  clearAllQueues(): void {
+    for (const queue of this.queues.values()) {
+      queue.length = 0;
+    }
+    logger.info('All matchmaking queues cleared');
+  }
+
   /** Queue sizes for diagnostics */
   getQueueSizes(): Record<string, number> {
     const result: Record<string, number> = {};

@@ -127,11 +127,15 @@ app.use('*', (_req, res) => {
   });
 });
 
+// Singleton SocketService instance — exported so routes can access matchmaking
+let _socketService: SocketService | null = null;
+export function getSocketService(): SocketService | null { return _socketService; }
+
 // Initialize database and start server
 const startServer = async () => {
   try {
     // Initialize Socket.IO service (owns matchmaking internally)
-    new SocketService(io);
+    _socketService = new SocketService(io);
 
     // Start server
     const PORT = env.PORT || 4000;

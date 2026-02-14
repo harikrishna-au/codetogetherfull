@@ -176,6 +176,13 @@ export const roomApi = {
       method: 'POST',
     });
   },
+
+  // Terminate all active rooms
+  async terminateAll(): Promise<void> {
+    await apiRequest('/rooms/terminate-all', {
+      method: 'POST',
+    });
+  },
 };
 
 // User Management API endpoints
