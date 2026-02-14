@@ -72,9 +72,15 @@ const Matchmaking = () => {
 
   // Cancel queue handler
   const handleCancelQueue = () => {
-    if (!user) return;
-    // Emit leaveQueue over socket (fastest path — removes from in-memory queue instantly)
-    if (socket && connected) socket.emit('leaveQueue');
+    // Always allow navigation away, even if user/socket is missing
+    if (socket && connected) {
+      try {
+        socket.emit('leaveQueue');
+      } catch (e) {
+        console.error('Error emitting leaveQueue:', e);
+      }
+    }
+
     sessionStorage.removeItem('inQueue');
     sessionStorage.removeItem('queueMode');
     sessionStorage.removeItem('queueDifficulty');
@@ -128,7 +134,7 @@ const Matchmaking = () => {
 
                 {!matchedRoomId && (
                   <button
-                    className="mt-4 px-5 py-2 bg-red-900/60 text-red-300 border border-red-800/50 rounded-lg hover:bg-red-800/60 transition text-sm"
+                    className="mt-4 px-5 py-2 bg-red-900/60 text-red-300 border border-red-800/50 rounded-lg hover:bg-red-800/60 transition text-sm relative z-50"
                     onClick={handleCancelQueue}
                   >
                     Cancel
