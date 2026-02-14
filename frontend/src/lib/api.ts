@@ -19,4 +19,5 @@ export const API_ENDPOINTS = {
   SAVE_SESSION_RESULTS: `${API_BASE_URL}/session/save-results`,
   USER_STATS: `${API_BASE_URL}/users/stats`,
   USER_HISTORY: `${API_BASE_URL}/users/history`,
+  USERS_BASE: `${API_BASE_URL}/users`,
 };
