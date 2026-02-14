@@ -61,7 +61,7 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Listen for matchFound from the socket
+  // Listen for matchFound / matchError from the socket
   useEffect(() => {
     if (!socket) return;
 
@@ -71,6 +71,8 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
       if (data?.roomId) setMatchedRoomId(data.roomId);
       if (data?.question) setMatchedQuestion(data.question);
       window.sessionStorage.removeItem('inQueue');
+      window.sessionStorage.removeItem('queueMode');
+      window.sessionStorage.removeItem('queueDifficulty');
       setTimeout(() => setPhase('countdown'), 500);
     };
 

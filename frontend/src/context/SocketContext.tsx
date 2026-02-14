@@ -1,4 +1,4 @@
-import { getSocket } from '../lib/socket';
+import { getSocket, updateSocketToken } from '../lib/socket';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { AuthContext } from './AuthContext';
@@ -37,7 +37,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     // If a socket already exists and is alive, just update its auth token
     // (handles token refresh — no reconnect needed)
     if (socketRef.current && (socketRef.current.connected || socketRef.current.active)) {
-      (socketRef.current as any).auth = { token: sessionToken };
+      updateSocketToken(sessionToken);
       return;
     }
 

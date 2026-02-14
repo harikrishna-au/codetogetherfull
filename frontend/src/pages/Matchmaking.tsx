@@ -5,9 +5,8 @@ import { Code, Zap } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { useSessionAuth } from '@/context/SessionAuthContext';
 import { useMatchmaking } from '@/context/MatchmakingContext';
-import { API_ENDPOINTS } from '@/lib/api';
 import ActiveUserHeartbeat from '@/components/ActiveUserHeartbeat';
-import { fetchUserState } from '@/lib/userState';
+import { toast } from 'sonner';
 
 const Matchmaking = () => {
   const navigate = useNavigate();
@@ -22,54 +21,35 @@ const Matchmaking = () => {
 
   const hasJoinedRef = useRef(false);
 
-  // Check if user already has an active session and redirect
-  useEffect(() => {
-    if (!user) return;
-
-    const fromSession = sessionStorage.getItem('fromSession');
-    if (fromSession) {
-      sessionStorage.removeItem('fromSession');
-      return;
-    }
-
-    let mounted = true;
-    const checkActiveSession = async () => {
-      try {
-        const state = await fetchUserState(user.id);
-        if (!mounted) return;
-        if (state && (state.state === 'matched' || state.state === 'in-session') && state.roomId?.trim()) {
-          navigate(`/session/${state.roomId}`, {
-            state: { mode: state.mode, difficulty: state.difficulty },
-            replace: true,
-          });
-        }
-      } catch (err) {
-        console.error('[Matchmaking] Error checking user state:', err);
-      }
-    };
-
-    const t = setTimeout(checkActiveSession, 1000);
-    return () => { mounted = false; clearTimeout(t); };
-  }, [user, navigate]);
-
   // Join the queue once socket is connected
   useEffect(() => {
     if (!user || !socket || !connected || hasJoinedRef.current) return;
     hasJoinedRef.current = true;
 
-    // Listen for queue rejoin response
+    // Handle matchError — e.g. no questions available
+    const onMatchError = (data: { message: string }) => {
+      console.error('[Matchmaking] matchError:', data.message);
+      toast.error(data.message || 'Matchmaking failed. Please try again.');
+      sessionStorage.removeItem('inQueue');
+      hasJoinedRef.current = false;
+      navigate('/');
+    };
+    socket.on('matchError', onMatchError);
+
+    // Handle rejoin response
     const onQueueRejoined = (data: { waiting: boolean; mode?: string; difficulty?: string }) => {
       console.log('[Matchmaking] queueRejoined:', data);
       if (!data.waiting) {
-        // Not already in queue — join fresh
+        // Not in queue anymore — join fresh with current mode/difficulty
         ctxJoinQueue(mode, difficulty);
       }
-      // If waiting=true, we're already in the queue — nothing to do, matchFound will fire
+      // waiting=true means backend re-added us to the in-memory queue — matchFound will fire
     };
     socket.once('queueRejoined', onQueueRejoined);
 
-    if (sessionStorage.getItem('inQueue') === '1') {
-      console.log('[Matchmaking] Returning user — emitting rejoinQueue');
+    const inQueue = sessionStorage.getItem('inQueue') === '1';
+    if (inQueue) {
+      console.log('[Matchmaking] Returning user — emitting rejoinQueue', mode);
       socket.emit('rejoinQueue', { type: mode });
     } else {
       console.log('[Matchmaking] New user — joining queue', mode, difficulty);
@@ -77,8 +57,8 @@ const Matchmaking = () => {
     }
 
     return () => {
+      socket.off('matchError', onMatchError);
       socket.off('queueRejoined', onQueueRejoined);
-      // Reset so a reconnect or StrictMode re-mount can re-join
       hasJoinedRef.current = false;
     };
   }, [user, socket, connected]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -92,8 +72,18 @@ const Matchmaking = () => {
 
   // Cancel queue handler
   const handleCancelQueue = () => {
-    if (!user) return;
-    leaveQueue();
+    // Always allow navigation away, even if user/socket is missing
+    if (socket && connected) {
+      try {
+        socket.emit('leaveQueue');
+      } catch (e) {
+        console.error('Error emitting leaveQueue:', e);
+      }
+    }
+
+    sessionStorage.removeItem('inQueue');
+    sessionStorage.removeItem('queueMode');
+    sessionStorage.removeItem('queueDifficulty');
     hasJoinedRef.current = false;
     navigate('/');
   };
@@ -144,8 +134,7 @@ const Matchmaking = () => {
 
                 {!matchedRoomId && (
                   <button
-                    type="button"
-                    className="relative z-20 mt-4 px-5 py-2 bg-red-900/60 text-red-300 border border-red-800/50 rounded-lg hover:bg-red-800/60 transition text-sm cursor-pointer"
+                    className="mt-4 px-5 py-2 bg-red-900/60 text-red-300 border border-red-800/50 rounded-lg hover:bg-red-800/60 transition text-sm relative z-50"
                     onClick={handleCancelQueue}
                   >
                     Cancel

@@ -420,16 +420,23 @@ export class SocketService {
           });
           return;
         }
-      } else if (userState.state === 'waiting') {
-        // User is already in queue
-        socket.emit('queueRejoined', {
-          waiting: true,
+      } else if (userState.state === 'waiting' && userState.mode && userState.difficulty) {
+        // Re-add to in-memory queue with CURRENT socket id (old socketId is stale after reconnect)
+        await supabase.from('user_states')
+          .update({ socket_id: socket.id, is_active: true, last_active: new Date().toISOString() })
+          .eq('user_id', userId);
+
+        await this.matchmakingService.joinQueue(userId, socket.id, userState.mode, userState.difficulty);
+
+        logger.info('User re-added to queue on rejoin', {
+          userId,
           mode: userState.mode,
           difficulty: userState.difficulty,
+          socketId: socket.id,
         });
 
-        logger.info('User rejoined existing queue', {
-          userId,
+        socket.emit('queueRejoined', {
+          waiting: true,
           mode: userState.mode,
           difficulty: userState.difficulty,
         });
@@ -555,11 +562,17 @@ export class SocketService {
       // Remove from in-memory matchmaking queues if still waiting
       this.matchmakingService.removeUserFromAllQueues(userId);
 
-      // Update user state
+      // Clear connection info for all states
       await supabase.from('user_states').update({
         socket_id: null,
-        is_active: false
+        is_active: false,
       }).eq('user_id', userId);
+
+      // Reset 'waiting' → 'idle' so stale queue state doesn't block future matchmaking
+      await supabase.from('user_states').update({
+        state: 'idle',
+        queue_joined_at: null,
+      }).eq('user_id', userId).eq('state', 'waiting');
 
       // Remove from connection mappings
       this.connectedUsers.delete(userId);
