@@ -17,6 +17,8 @@ import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
 import { Switch } from '@/components/ui/switch';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { Users, Trophy, X } from 'lucide-react';
+import { UserButton, SignedIn } from '@clerk/clerk-react';
+import { Link } from 'react-router-dom';
 
 // ─── Win overlay ─────────────────────────────────────────────────────────────
 
@@ -370,19 +372,19 @@ const CodingSession = () => {
 
       <div className="flex flex-col h-screen">
         {/* Top banner: sync button + mode badge */}
-        <div className="flex items-center justify-between px-4 py-1.5 bg-[#1e1e1e] border-b border-[#3e3e42] text-xs text-gray-400">
+        <div className="flex items-center justify-between px-4 py-1.5 bg-black border-b border-white/[0.08] text-xs text-[#4a5057]">
           <div className="flex items-center gap-2">
-            <span className="capitalize font-medium text-gray-300">{mode}</span>
-            <span>·</span>
-            <span className="capitalize">{difficulty}</span>
+            <span className="capitalize font-medium text-[#8a9099]">{mode}</span>
+            <span className="text-[#2e3338]">·</span>
+            <span className="capitalize text-[#6b7075]">{difficulty}</span>
             {isSynced && (
-              <span className="flex items-center gap-1 text-green-400 ml-2">
+              <span className="flex items-center gap-1 text-[#cfd3d6] ml-2">
                 <Users className="w-3 h-3" /> Collaborative
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs ${isSynced ? 'text-green-400 font-medium' : 'text-gray-500'}`}>
+          <div className="flex items-center gap-3">
+            <span className={`text-xs ${isSynced ? 'text-[#cfd3d6] font-medium' : 'text-[#2e3338]'}`}>
               {isSynced ? 'Sync ON' : 'Sync OFF'}
             </span>
             <Switch
@@ -395,8 +397,22 @@ const CodingSession = () => {
                   toast.info('Collaborative editing disabled');
                 }
               }}
-              className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-slate-700"
+              className="data-[state=checked]:bg-white/20 data-[state=unchecked]:bg-white/[0.04]"
             />
+            {/* User profile controls */}
+            <SignedIn>
+              <div className="flex items-center gap-2 pl-2 border-l border-[#3e3e42]">
+                <Link
+                  to="/profile"
+                  className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-white/[0.06] transition-colors"
+                >
+                  Profile
+                </Link>
+                <div className="ring-1 ring-white/10 rounded-full hover:ring-white/25 transition-all">
+                  <UserButton afterSignOutUrl="/" />
+                </div>
+              </div>
+            </SignedIn>
           </div>
         </div>
 

@@ -5,17 +5,18 @@ import {
     Trophy,
     Clock,
     Code,
-    Zap,
     Target,
     Flame,
-    Calendar,
-    User as UserIcon
+    User as UserIcon,
+    ArrowLeft,
 } from 'lucide-react';
 import { StatCard } from '@/components/profile/StatCard';
 import { SessionHistoryTable } from '@/components/profile/SessionHistoryTable';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import BackgroundEffects from '@/components/landing/BackgroundEffects';
 
 interface UserStats {
     totalSessions: number;
@@ -36,6 +37,7 @@ interface UserStats {
 
 const ProfilePage = () => {
     const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [stats, setStats] = useState<UserStats | null>(null);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -84,130 +86,132 @@ const ProfilePage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8 pt-20">
-            <div className="max-w-6xl mx-auto space-y-8">
+        <div className="relative min-h-screen overflow-x-hidden">
+            <BackgroundEffects />
+
+            <div className="relative z-10 max-w-6xl mx-auto px-6 py-8 pt-10 space-y-8">
+
+                {/* Back button */}
+                <button
+                    onClick={() => navigate(-1)}
+                    className="flex items-center gap-2 text-sm text-[#8a9099] hover:text-[#e2e5e8] transition-colors duration-200 group"
+                >
+                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                    Back
+                </button>
+
                 {/* User Header */}
-                <div className="flex items-center space-x-6 animate-fade-in">
-                    <Avatar className="h-24 w-24 border-4 border-purple-500/30">
-                        <AvatarImage src={user?.imageUrl} />
-                        <AvatarFallback className="bg-purple-600 text-2xl text-white">
-                            {user?.fullName?.charAt(0) || user?.primaryEmailAddress?.emailAddress?.charAt(0)}
-                        </AvatarFallback>
-                    </Avatar>
+                <div className="flex items-center gap-6 animate-fade-in">
+                    <div className="relative">
+                        <div className="absolute inset-0 rounded-full bg-white/[0.06] blur-xl scale-110" />
+                        <Avatar className="relative h-20 w-20 ring-1 ring-white/[0.12]">
+                            <AvatarImage src={user?.imageUrl} />
+                            <AvatarFallback className="bg-white/[0.06] text-[#e2e5e8] text-2xl font-semibold border border-white/[0.08]">
+                                {user?.fullName?.charAt(0) || user?.primaryEmailAddress?.emailAddress?.charAt(0) || '?'}
+                            </AvatarFallback>
+                        </Avatar>
+                    </div>
                     <div>
-                        <h1 className="text-4xl font-bold text-white">{user?.fullName || 'Coder'}</h1>
-                        <p className="text-gray-400 text-lg flex items-center gap-2">
-                            <UserIcon className="w-4 h-4" />
+                        <h1 className="text-3xl font-bold text-[#e2e5e8] tracking-tight">
+                            {user?.fullName || 'Coder'}
+                        </h1>
+                        <p className="text-[#6b7075] text-sm mt-1 flex items-center gap-1.5">
+                            <UserIcon className="w-3.5 h-3.5" />
                             {user?.primaryEmailAddress?.emailAddress}
                         </p>
-                        <p className="text-purple-300 text-sm mt-1">
+                        <p className="text-[#4a5057] text-xs mt-1">
                             Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
                         </p>
                     </div>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in delay-100">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-fade-in">
                     <StatCard
                         icon={Target}
                         label="Total Sessions"
                         value={stats?.totalSessions || 0}
                         loading={loading}
-                        iconColor="text-blue-400"
+                        iconColor="text-[#cfd3d6]"
                     />
                     <StatCard
                         icon={Trophy}
                         label="Win Rate"
                         value={getWinRate()}
-                        subtitle={`${stats?.winLossRecord.wins || 0}W - ${stats?.winLossRecord.losses || 0}L`}
+                        subtitle={`${stats?.winLossRecord.wins || 0}W — ${stats?.winLossRecord.losses || 0}L`}
                         loading={loading}
                         iconColor="text-yellow-400"
                     />
                     <StatCard
                         icon={Flame}
-                        label="Winning Streak"
+                        label="Win Streak"
                         value={stats?.currentStreak || 0}
                         loading={loading}
-                        iconColor="text-orange-500"
+                        iconColor="text-orange-400"
                     />
                     <StatCard
                         icon={Clock}
                         label="Coding Time"
                         value={formatTime(stats?.totalCodingTime || 0)}
                         loading={loading}
-                        iconColor="text-green-400"
+                        iconColor="text-[#8a9099]"
                     />
                 </div>
 
                 {/* Breakdown & History */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in delay-200">
-                    {/* Detailed Stats */}
-                    <div className="space-y-6 lg:col-span-1">
-                        <Card className="bg-white/5 border-white/10 backdrop-blur h-full">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2">
-                                    <Code className="w-5 h-5" />
-                                    Problems Solved
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
-                                    <div className="text-3xl font-bold text-white mb-1">
-                                        {stats?.totalProblemsSolved || 0}
-                                    </div>
-                                    <div className="text-sm text-gray-400">Total Solved</div>
-                                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
 
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-green-400 text-sm">Easy</span>
-                                        <div className="flex items-center gap-2 flex-1 mx-4">
-                                            <div className="h-2 bg-white/10 rounded-full flex-1 overflow-hidden">
-                                                <div
-                                                    className="h-full bg-green-500 rounded-full"
-                                                    style={{ width: `${stats?.totalProblemsSolved ? ((stats.problemsSolved.easy / stats.totalProblemsSolved) * 100) : 0}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-white font-mono text-sm w-6 text-right">{stats?.problemsSolved.easy || 0}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-yellow-400 text-sm">Medium</span>
-                                        <div className="flex items-center gap-2 flex-1 mx-4">
-                                            <div className="h-2 bg-white/10 rounded-full flex-1 overflow-hidden">
-                                                <div
-                                                    className="h-full bg-yellow-500 rounded-full"
-                                                    style={{ width: `${stats?.totalProblemsSolved ? ((stats.problemsSolved.medium / stats.totalProblemsSolved) * 100) : 0}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-white font-mono text-sm w-6 text-right">{stats?.problemsSolved.medium || 0}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-red-400 text-sm">Hard</span>
-                                        <div className="flex items-center gap-2 flex-1 mx-4">
-                                            <div className="h-2 bg-white/10 rounded-full flex-1 overflow-hidden">
-                                                <div
-                                                    className="h-full bg-red-500 rounded-full"
-                                                    style={{ width: `${stats?.totalProblemsSolved ? ((stats.problemsSolved.hard / stats.totalProblemsSolved) * 100) : 0}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-white font-mono text-sm w-6 text-right">{stats?.problemsSolved.hard || 0}</span>
-                                        </div>
-                                    </div>
+                    {/* Problems Solved breakdown */}
+                    <Card className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl lg:col-span-1">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-[#cfd3d6] text-sm font-medium flex items-center gap-2">
+                                <Code className="w-4 h-4 text-[#6b7075]" />
+                                Problems Solved
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            {/* Total count */}
+                            <div className="text-center py-4 bg-white/[0.03] rounded-lg border border-white/[0.06]">
+                                <div className="text-4xl font-bold text-[#e2e5e8] mb-0.5">
+                                    {stats?.totalProblemsSolved || 0}
                                 </div>
+                                <div className="text-xs text-[#4a5057]">Total Solved</div>
+                            </div>
 
-                                <div className="pt-4 border-t border-white/10">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-300 text-sm">Favorite Language</span>
-                                        <span className="text-purple-300 font-mono capitalize">
-                                            {stats?.favoriteLanguage || 'None'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                            {/* Difficulty bars */}
+                            <div className="space-y-3">
+                                {[
+                                    { label: 'Easy', key: 'easy' as const, color: 'bg-green-500', text: 'text-green-400' },
+                                    { label: 'Medium', key: 'medium' as const, color: 'bg-yellow-500', text: 'text-yellow-400' },
+                                    { label: 'Hard', key: 'hard' as const, color: 'bg-red-500', text: 'text-red-400' },
+                                ].map(({ label, key, color, text }) => {
+                                    const count = stats?.problemsSolved[key] || 0;
+                                    const pct = stats?.totalProblemsSolved
+                                        ? (count / stats.totalProblemsSolved) * 100
+                                        : 0;
+                                    return (
+                                        <div key={key} className="flex items-center gap-3">
+                                            <span className={`${text} text-xs w-12 shrink-0`}>{label}</span>
+                                            <div className="h-1.5 bg-white/[0.06] rounded-full flex-1 overflow-hidden">
+                                                <div
+                                                    className={`h-full ${color} rounded-full transition-all duration-700`}
+                                                    style={{ width: `${pct}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-[#6b7075] font-mono text-xs w-4 text-right shrink-0">{count}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="pt-3 border-t border-white/[0.06] flex justify-between items-center">
+                                <span className="text-[#4a5057] text-xs">Fav. Language</span>
+                                <span className="text-[#cfd3d6] font-mono text-xs capitalize">
+                                    {stats?.favoriteLanguage || 'None'}
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Session History */}
                     <div className="lg:col-span-2">

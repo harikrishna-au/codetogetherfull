@@ -297,6 +297,54 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
       });
     });
 
+    // ── Register custom site-themed editor (black + landing palette) ─────────
+    monaco.editor.defineTheme('codetogether-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: '',          foreground: 'cfd3d6' },                       // default — landing text colour
+        { token: 'comment',   foreground: '3a3f45', fontStyle: 'italic' },  // very muted
+        { token: 'keyword',   foreground: 'c8cdd2', fontStyle: 'bold' },    // bright white-grey
+        { token: 'string',    foreground: '8a9099' },                       // mid grey
+        { token: 'number',    foreground: 'e2e5e8' },                       // near white
+        { token: 'type',      foreground: 'bfc5c9' },
+        { token: 'class',     foreground: 'bfc5c9' },
+        { token: 'function',  foreground: 'dce0e4' },
+        { token: 'variable',  foreground: 'cfd3d6' },
+        { token: 'operator',  foreground: '6b7075' },
+        { token: 'delimiter', foreground: '4a5057' },
+        { token: 'tag',       foreground: 'bfc5c9' },
+        { token: 'attribute', foreground: 'a0a8b0' },
+        { token: 'constant',  foreground: 'e2e5e8' },
+      ],
+      colors: {
+        'editor.background':              '#000000',        // pure black like landing
+        'editor.foreground':              '#cfd3d6',
+        'editor.lineHighlightBackground': '#ffffff06',
+        'editor.selectionBackground':     '#ffffff14',
+        'editor.inactiveSelectionBackground': '#ffffff08',
+        'editorLineNumber.foreground':    '#2e3338',
+        'editorLineNumber.activeForeground': '#6b7075',
+        'editorCursor.foreground':        '#e2e5e8',
+        'editorWhitespace.foreground':    '#1a1d20',
+        'editorIndentGuide.background1':  '#1a1d20',
+        'editorIndentGuide.activeBackground1': '#2e3338',
+        'editor.findMatchBackground':     '#ffffff20',
+        'editor.findMatchHighlightBackground': '#ffffff10',
+        'editorSuggestWidget.background': '#0a0a0a',
+        'editorSuggestWidget.border':     '#ffffff0d',
+        'editorSuggestWidget.selectedBackground': '#ffffff0a',
+        'editorSuggestWidget.foreground': '#cfd3d6',
+        'editorSuggestWidget.highlightForeground': '#ffffff',
+        'scrollbarSlider.background':     '#ffffff08',
+        'scrollbarSlider.hoverBackground':'#ffffff12',
+        'scrollbarSlider.activeBackground':'#ffffff18',
+        'editorGutter.background':        '#000000',
+        'minimap.background':             '#000000',
+      },
+    });
+    monaco.editor.setTheme('codetogether-dark');
+
     // Enable better IntelliSense for TypeScript/JavaScript
     if (monaco.languages.typescript) {
       monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
@@ -323,14 +371,14 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
   }, [onEditorMount, unbind, setCode]);
 
   return (
-    <div className="h-full bg-[#1e1e1e] flex flex-col">
-      <div className="h-10 bg-[#2d2d30] border-b border-[#3e3e42] flex items-center justify-between px-4">
+    <div className="h-full bg-black flex flex-col">
+      <div className="h-10 bg-black border-b border-white/[0.08] flex items-center justify-between px-4">
         <div className="flex items-center space-x-4">
-          <span className="text-sm text-[#cccccc]">Code</span>
+          <span className="text-sm text-[#6b7075] font-mono font-medium">Code</span>
           <select
             value={selectedLanguage}
             onChange={(e) => handleLanguageChange(e.target.value as SupportedLanguage)}
-            className="bg-[#3c3c3c] border border-[#3e3e42] rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+            className="bg-white/[0.04] border border-white/[0.08] rounded px-2 py-1 text-xs text-[#cfd3d6] focus:outline-none focus:border-white/20"
           >
             <option value="javascript">JavaScript</option>
             <option value="python">Python</option>
@@ -370,7 +418,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
             onClick={onRun}
             disabled={isSubmitting}
             variant="secondary"
-            className="bg-[#3e3e42] hover:bg-[#4e4e52] text-white text-xs h-7 px-3 border border-[#525255]"
+            className="bg-white/[0.04] hover:bg-white/[0.07] text-[#8a9099] hover:text-[#cfd3d6] text-xs h-7 px-3 border border-white/[0.08] hover:border-white/[0.15]"
           >
             <Play className="w-3 h-3 mr-1" />
             Run
@@ -397,21 +445,21 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
           {/* Video toggle */}
           <button
             onClick={() => setIsVideoOn((v) => !v)}
-            className={`p-2 rounded transition-colors duration-150 focus:outline-none ${isVideoOn ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+            className={`p-2 rounded border transition-colors duration-150 focus:outline-none ${isVideoOn ? 'bg-white/[0.08] border-white/20 text-[#e2e5e8]' : 'bg-transparent border-white/[0.08] text-[#3a3f45] hover:border-white/[0.15] hover:text-[#8a9099]'}`}
             title={isVideoOn ? 'Turn off video' : 'Turn on video'}
           >
             {isVideoOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
           </button>
           <button
             onClick={() => setIsAudioOn((a) => !a)}
-            className={`p-2 rounded transition-colors duration-150 focus:outline-none ${isAudioOn ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+            className={`p-2 rounded border transition-colors duration-150 focus:outline-none ${isAudioOn ? 'bg-white/[0.08] border-white/20 text-[#e2e5e8]' : 'bg-transparent border-white/[0.08] text-[#3a3f45] hover:border-white/[0.15] hover:text-[#8a9099]'}`}
             title={isAudioOn ? 'Mute mic' : 'Unmute mic'}
           >
             {isAudioOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
           </button>
           <button
             onClick={() => setIsChatOpen((c) => !c)}
-            className={`p-2 rounded transition-colors duration-150 focus:outline-none ${isChatOpen ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+            className={`p-2 rounded border transition-colors duration-150 focus:outline-none ${isChatOpen ? 'bg-white/[0.08] border-white/20 text-[#e2e5e8]' : 'bg-transparent border-white/[0.08] text-[#3a3f45] hover:border-white/[0.15] hover:text-[#8a9099]'}`}
             title={isChatOpen ? 'Hide chat' : 'Show chat'}
           >
             <MessageSquare className="w-4 h-4" />
@@ -419,7 +467,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
           {roomId && <RoomTimer roomId={roomId} className="ml-2" />}
           <button
             onClick={handleExitSession}
-            className="p-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors duration-150 focus:outline-none ml-1"
+            className="p-2 rounded border border-white/[0.08] bg-transparent text-[#4a5057] hover:border-red-900/60 hover:text-red-400 hover:bg-red-950/30 transition-colors duration-150 focus:outline-none ml-1"
             title="Exit session"
           >
             <LogOut className="w-4 h-4" />
@@ -438,7 +486,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
             : { value: code, onChange: (v) => setCode(v || '') }
           )}
           onMount={handleEditorDidMount}
-          theme="vs-dark"
+          theme="codetogether-dark"
           options={{
             minimap: { enabled: false },
             scrollBeyondLastLine: false,

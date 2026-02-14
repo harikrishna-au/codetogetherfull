@@ -24,7 +24,7 @@ const VideoFeed: React.FC<{
   }, [stream]);
 
   return (
-    <div className="relative flex-1 rounded-lg overflow-hidden bg-[#0d0d1a] border border-[#3e3e42]">
+    <div className="relative flex-1 rounded-lg overflow-hidden bg-black border border-white/[0.08]">
       {videoOn && stream ? (
         <video
           ref={videoRef}
@@ -50,7 +50,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({
   localStream, remoteStream, isVideoOn, isAudioOn, isConnected,
 }) => {
   return (
-    <div className="w-full bg-[#141424] border-b border-[#3e3e42] px-3 py-2 flex items-stretch gap-3 h-44 shrink-0">
+    <div className="w-full bg-black border-b border-white/[0.08] px-3 py-2 flex items-stretch gap-3 h-44 shrink-0">
       {/* Both feeds side by side */}
       <VideoFeed
         stream={localStream}
