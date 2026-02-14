@@ -2,7 +2,8 @@
 import { io, Socket } from 'socket.io-client';
 
 // Use http:// — Socket.IO handles the WS upgrade internally
-const SOCKET_URL = `${window.location.protocol === 'https:' ? 'https' : 'http'}://${window.location.hostname}:4000`;
+// Use relative URL in production (Nginx proxy), or localhost:4000 in dev
+const SOCKET_URL = import.meta.env.PROD ? '/' : 'http://localhost:4000';
 
 let socket: Socket | null = null;
 let lastToken: string | null = null;
