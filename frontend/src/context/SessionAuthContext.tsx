@@ -28,17 +28,29 @@ export const SessionAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     if (!authLoaded) return;
 
+    const setTokenCookie = (token: string | null) => {
+      if (token) {
+        // Set cookie so fetch calls with credentials:'include' send it automatically
+        document.cookie = `sessionToken=${token}; path=/; SameSite=Lax`;
+      } else {
+        document.cookie = `sessionToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      }
+    };
+
     const fetchToken = async () => {
       if (isSignedIn) {
         try {
           const token = await getToken({ skipCache: true });
           setSessionToken(token);
+          setTokenCookie(token);
         } catch (error) {
           console.error("Error fetching Clerk token:", error);
           setSessionToken(null);
+          setTokenCookie(null);
         }
       } else {
         setSessionToken(null);
+        setTokenCookie(null);
       }
       setTokenLoading(false);
     };
@@ -64,7 +76,13 @@ export const SessionAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       loading,
       refreshToken: async () => {
         if (isSignedIn) {
-          try { setSessionToken(await getToken({ skipCache: true })); } catch (e) { console.error('Failed to refresh token:', e); }
+          try {
+            const token = await getToken({ skipCache: true });
+            setSessionToken(token);
+            if (token) {
+              document.cookie = `sessionToken=${token}; path=/; SameSite=Lax`;
+            }
+          } catch (e) { console.error('Failed to refresh token:', e); }
         }
       },
       loginWithSession: async () => { }, // No-op

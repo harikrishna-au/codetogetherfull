@@ -2,13 +2,14 @@ import express from 'express';
 import { AppError, ValidationError, asyncHandler } from '../utils/errors.js';
 import { supabase } from '../config/supabase.js';
 import { CodeRunner } from '../services/codeRunner.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 const codeRunner = new CodeRunner();
 
 const SUPPORTED_LANGUAGES = ['javascript', 'python', 'java', 'cpp'] as const;
 
-router.post('/', asyncHandler(async (req: any, res: any) => {
+router.post('/', authenticateToken, asyncHandler(async (req: any, res: any) => {
     const { code, language, questionId, visibleOnly, roomId } = req.body;
     const userId = req.user?.userId;
 
