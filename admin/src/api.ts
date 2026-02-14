@@ -1,6 +1,6 @@
 
 // API service for admin panel
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/admin-api/admin';
+const API_BASE_URL = (import.meta as any).env.VITE_API_URL || '/admin-api/admin';
 
 interface Question {
   id?: string;
