@@ -14,7 +14,7 @@ const Matchmaking = () => {
   const location = useLocation();
   const { user } = useSessionAuth();
   const { socket, connected } = useSocket();
-  const { phase, countdown, matchFound, matchedRoomId, matchedQuestion, joinQueue: ctxJoinQueue } = useMatchmaking();
+  const { phase, countdown, matchFound, matchedRoomId, matchedQuestion, joinQueue: ctxJoinQueue, leaveQueue } = useMatchmaking();
 
   const locationState = location.state || { mode: 'friendly', difficulty: 'easy' };
   const [mode] = useState(locationState.mode || 'friendly');
@@ -93,11 +93,7 @@ const Matchmaking = () => {
   // Cancel queue handler
   const handleCancelQueue = () => {
     if (!user) return;
-    // Emit leaveQueue over socket (fastest path — removes from in-memory queue instantly)
-    if (socket && connected) socket.emit('leaveQueue');
-    sessionStorage.removeItem('inQueue');
-    sessionStorage.removeItem('queueMode');
-    sessionStorage.removeItem('queueDifficulty');
+    leaveQueue();
     hasJoinedRef.current = false;
     navigate('/');
   };
@@ -112,7 +108,7 @@ const Matchmaking = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-white/[0.02] blur-[80px]" />
         </div>
 
-        <Card className="relative bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl max-w-lg w-full shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <Card className="relative z-10 bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl max-w-lg w-full shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           <CardContent className="p-8 text-center">
             {phase === 'matching' ? (
               <>
@@ -148,7 +144,8 @@ const Matchmaking = () => {
 
                 {!matchedRoomId && (
                   <button
-                    className="mt-4 px-5 py-2 bg-red-900/60 text-red-300 border border-red-800/50 rounded-lg hover:bg-red-800/60 transition text-sm"
+                    type="button"
+                    className="relative z-20 mt-4 px-5 py-2 bg-red-900/60 text-red-300 border border-red-800/50 rounded-lg hover:bg-red-800/60 transition text-sm cursor-pointer"
                     onClick={handleCancelQueue}
                   >
                     Cancel
