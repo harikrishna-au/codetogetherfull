@@ -13,7 +13,7 @@ export const ModeSelector = ({ selectedMode, onModeSelect }: ModeSelectorProps) 
       <Card 
         className={`cursor-pointer transition-all duration-300 hover:scale-105 ${
           selectedMode === 'friendly' 
-            ? 'ring-2 ring-green-500 bg-green-500/10 border-green-500' 
+            ? 'ring-2 ring-accent bg-accent/10 border-accent' 
             : 'bg-white/5 border-white/20 hover:bg-white/10'
         }`}
         onClick={() => onModeSelect('friendly')}
@@ -36,7 +36,7 @@ export const ModeSelector = ({ selectedMode, onModeSelect }: ModeSelectorProps) 
         onClick={() => onModeSelect('challenge')}
       >
         <CardContent className="p-6 text-center">
-          <Zap className={`w-12 h-12 mx-auto mb-4 ${selectedMode === 'challenge' ? 'text-orange-400' : 'text-gray-400'}`} />
+          <Zap className={`w-12 h-12 mx-auto mb-4 ${selectedMode === 'challenge' ? 'text-accent/80' : 'text-gray-400'}`} />
           <h3 className="text-xl font-semibold text-white mb-2">Challenge Mode</h3>
           <p className="text-gray-300 text-sm">
             Competitive programming battles, timed competitions, and skill-based matchmaking.

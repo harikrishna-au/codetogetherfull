@@ -1,0 +1,5 @@
+Updating HeroSection.tsx to use semantic color tokens
+- Replace bg-gradient-to-b from-slate-950 to-slate-900 -> from-primary/90 to-primary/70
+- Replace from-slate-900 to-slate-800 -> from-primary/80 to-primary/60  
+- Replace text-slate-* with text-muted-foreground/*, text-accent
+- Replace hardcoded color values with semantic tokens

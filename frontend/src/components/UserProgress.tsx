@@ -120,7 +120,7 @@ const UserProgress: React.FC<UserProgressProps> = ({ userId, className = '' }) =
                       key={questionIndex}
                       className={`w-6 h-6 rounded flex items-center justify-center text-xs ${
                         completed 
-                          ? 'bg-green-500 text-white' 
+                          ? 'bg-accent text-white' 
                           : 'bg-gray-200 text-gray-600 border'
                       }`}
                       title={`Question ${questionIndex + 1}: ${completed ? 'Completed' : 'Not completed'}`}

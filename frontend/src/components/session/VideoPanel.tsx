@@ -69,7 +69,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({
         <div className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full ${
           isConnected
             ? 'bg-green-900/50 text-green-400 border border-green-700/50'
-            : 'bg-slate-800 text-slate-500 border border-slate-700'
+            : 'bg-primary/70 text-muted-foreground/70 border border-slate-700'
         }`}>
           {isConnected
             ? <Wifi className="w-3 h-3" />
@@ -77,7 +77,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({
           {isConnected ? 'Connected' : 'Waiting…'}
         </div>
         {!isAudioOn && (
-          <div className="flex items-center gap-1 text-[11px] text-slate-400 bg-slate-800 px-2 py-1 rounded-full border border-slate-700">
+          <div className="flex items-center gap-1 text-[11px] text-muted-foreground/60 bg-primary/70 px-2 py-1 rounded-full border border-slate-700">
             <MicOff className="w-3 h-3" />
             <span>Muted</span>
           </div>

@@ -44,7 +44,7 @@ interface SessionResultsData {
 }
 
 const difficultyStyles: Record<string, string> = {
-    easy: 'bg-green-500/10 text-green-400 border border-green-500/20',
+    easy: 'bg-accent/10 text-green-400 border border-accent/20',
     medium: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
     hard: 'bg-red-500/10 text-red-400 border border-red-500/20',
 };
@@ -155,9 +155,9 @@ const SessionResults = () => {
                             )}
                             {isDraw && (
                                 <div className="flex items-center justify-center gap-3">
-                                    <Zap className="w-10 h-10 text-blue-400" />
-                                    <h1 className="text-4xl sm:text-5xl font-bold text-blue-400 tracking-tight">Draw!</h1>
-                                    <Zap className="w-10 h-10 text-blue-400" />
+                                    <Zap className="w-10 h-10 text-accent/90" />
+                                    <h1 className="text-4xl sm:text-5xl font-bold text-accent/90 tracking-tight">Draw!</h1>
+                                    <Zap className="w-10 h-10 text-accent/90" />
                                 </div>
                             )}
                             {!iWon && !isDraw && (

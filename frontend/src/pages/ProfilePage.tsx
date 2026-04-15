@@ -154,7 +154,7 @@ const ProfilePage = () => {
                         label="Coding Time"
                         value={formatTime(stats?.totalCodingTime || 0)}
                         loading={loading}
-                        iconColor="text-green-500"
+                        iconColor="text-accent"
                     />
                 </div>
 
@@ -181,7 +181,7 @@ const ProfilePage = () => {
                             {/* Difficulty bars */}
                             <div className="space-y-3">
                                 {[
-                                    { label: 'Easy', key: 'easy' as const, color: 'bg-green-500', text: 'text-green-400' },
+                                    { label: 'Easy', key: 'easy' as const, color: 'bg-accent', text: 'text-green-400' },
                                     { label: 'Medium', key: 'medium' as const, color: 'bg-yellow-500', text: 'text-yellow-400' },
                                     { label: 'Hard', key: 'hard' as const, color: 'bg-red-500', text: 'text-red-400' },
                                 ].map(({ label, key, color, text }) => {

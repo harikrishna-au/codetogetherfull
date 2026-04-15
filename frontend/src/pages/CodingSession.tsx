@@ -44,14 +44,14 @@ const WinOverlay = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className={`relative rounded-2xl p-10 text-center shadow-2xl max-w-sm w-full
         ${iWon ? 'bg-gradient-to-br from-yellow-900 via-yellow-800 to-yellow-900 border border-yellow-500/50'
-          : 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-600/50'}`}>
+          : 'bg-gradient-to-br from-primary/85 via-primary/70 to-primary/85 border border-muted-foreground/50/50'}`}>
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-400 hover:text-white"
         >
           <X className="w-5 h-5" />
         </button>
-        <Trophy className={`w-16 h-16 mx-auto mb-4 ${iWon ? 'text-yellow-400' : 'text-slate-500'}`} />
+        <Trophy className={`w-16 h-16 mx-auto mb-4 ${iWon ? 'text-yellow-400' : 'text-muted-foreground/70'}`} />
         <h2 className={`text-3xl font-bold mb-2 ${iWon ? 'text-yellow-300' : 'text-slate-300'}`}>
           {iWon ? '🎉 You Won!' : '😔 You Lost'}
         </h2>

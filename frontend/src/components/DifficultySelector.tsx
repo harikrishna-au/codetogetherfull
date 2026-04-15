@@ -8,7 +8,7 @@ interface DifficultySelectorProps {
 
 export const DifficultySelector = ({ selectedDifficulty, onDifficultySelect }: DifficultySelectorProps) => {
   const difficulties = [
-    { value: 'easy', label: 'Easy', color: 'bg-green-500 hover:bg-green-600' },
+    { value: 'easy', label: 'Easy', color: 'bg-accent hover:bg-green-600' },
     { value: 'medium', label: 'Medium', color: 'bg-yellow-500 hover:bg-yellow-600' },
     { value: 'hard', label: 'Hard', color: 'bg-red-500 hover:bg-red-600' }
   ];

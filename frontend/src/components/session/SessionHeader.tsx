@@ -38,7 +38,7 @@ const SessionHeader: React.FC<SessionHeaderProps> = ({
         <div className="text-base font-semibold text-[#cccccc] truncate max-w-[260px]">
           CodeTogether - {mode} mode ({difficulty})
         </div>
-        <Badge variant="outline" className="text-xs border-green-500 text-green-400">
+        <Badge variant="outline" className="text-xs border-accent text-green-400">
           <Users className="w-3 h-3 mr-1" />
           Connected
         </Badge>
@@ -77,7 +77,7 @@ const SessionHeader: React.FC<SessionHeaderProps> = ({
         >
           <MessageSquare className="w-4 h-4" />
         </Button>
-        <div className="flex items-center space-x-2 text-orange-400 ml-2">
+        <div className="flex items-center space-x-2 text-accent/80 ml-2">
           <Clock className="w-4 h-4" />
           <span className="text-sm font-mono">{formatTime(timeLeft)}</span>
         </div>

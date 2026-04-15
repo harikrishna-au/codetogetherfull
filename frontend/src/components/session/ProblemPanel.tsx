@@ -22,7 +22,7 @@ interface Question {
 }
 
 const difficultyClass: Record<string, string> = {
-  easy: 'text-green-400 border-green-500/40 bg-green-500/10',
+  easy: 'text-green-400 border-accent/40 bg-accent/10',
   medium: 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10',
   hard: 'text-red-400 border-red-500/40 bg-red-500/10',
 };

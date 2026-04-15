@@ -37,7 +37,7 @@ export const LiveUserCounts = ({ mode, difficulty }: LiveUserCountsProps) => {
     <Card className="bg-white/5 border-white/20 max-w-md mx-auto">
       <CardContent className="p-4">
         <div className="flex items-center justify-center space-x-3">
-          <Users className="w-5 h-5 text-blue-400" />
+          <Users className="w-5 h-5 text-accent/90" />
           <span className="text-white font-medium">
             {userCount} users waiting in {mode} mode ({difficulty})
           </span>

@@ -121,7 +121,7 @@ export const SessionHistoryTable = ({ sessions, loading = false }: SessionHistor
                                         <div className="flex items-center gap-1.5 text-[#8a9099]">
                                             {session.mode === 'challenge'
                                                 ? <Trophy className="w-3 h-3 text-yellow-500" />
-                                                : <User className="w-3 h-3 text-blue-400" />}
+                                                : <User className="w-3 h-3 text-accent/90" />}
                                             <span className="capitalize">{session.mode}</span>
                                         </div>
                                     </td>
