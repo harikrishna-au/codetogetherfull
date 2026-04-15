@@ -1,8 +1,6 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Clock, Calendar, Code, User, Trophy, Zap } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Calendar, Code, User, Trophy } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Session {
@@ -32,6 +30,12 @@ interface SessionHistoryTableProps {
     loading?: boolean;
 }
 
+const difficultyColor: Record<string, string> = {
+    easy: 'text-green-400',
+    medium: 'text-yellow-400',
+    hard: 'text-red-400',
+};
+
 export const SessionHistoryTable = ({ sessions, loading = false }: SessionHistoryTableProps) => {
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -41,21 +45,21 @@ export const SessionHistoryTable = ({ sessions, loading = false }: SessionHistor
 
     if (loading) {
         return (
-            <Card className="bg-white/5 border-white/10 backdrop-blur">
-                <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                        <Clock className="w-5 h-5" />
+            <Card className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-[#cfd3d6] text-sm font-medium flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#6b7075]" />
                         Recent Sessions
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {[...Array(5)].map((_, i) => (
-                            <div key={i} className="flex items-center space-x-4">
-                                <Skeleton className="h-12 w-12 rounded bg-white/10" />
-                                <div className="space-y-2 flex-1">
-                                    <Skeleton className="h-4 w-full bg-white/10" />
-                                    <Skeleton className="h-4 w-3/4 bg-white/10" />
+                            <div key={i} className="flex items-center gap-3">
+                                <Skeleton className="h-9 w-9 rounded-lg bg-white/[0.06]" />
+                                <div className="space-y-1.5 flex-1">
+                                    <Skeleton className="h-3 w-3/4 bg-white/[0.06]" />
+                                    <Skeleton className="h-3 w-1/2 bg-white/[0.06]" />
                                 </div>
                             </div>
                         ))}
@@ -67,100 +71,120 @@ export const SessionHistoryTable = ({ sessions, loading = false }: SessionHistor
 
     if (sessions.length === 0) {
         return (
-            <Card className="bg-white/5 border-white/10 backdrop-blur">
-                <CardContent className="flex flex-col items-center justify-center py-12 text-gray-400">
-                    <Code className="w-12 h-12 mb-4 opacity-50" />
-                    <p className="text-lg font-medium">No sessions yet</p>
-                    <p className="text-sm">Complete your first coding session to see history!</p>
+            <Card className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
+                <CardContent className="flex flex-col items-center justify-center py-14 text-[#4a5057]">
+                    <Code className="w-10 h-10 mb-3 opacity-40" />
+                    <p className="text-sm font-medium text-[#6b7075]">No sessions yet</p>
+                    <p className="text-xs mt-1">Complete your first coding session to see history</p>
                 </CardContent>
             </Card>
         );
     }
 
     return (
-        <Card className="bg-white/5 border-white/10 backdrop-blur overflow-hidden">
-            <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
+        <Card className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl overflow-hidden">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-[#cfd3d6] text-sm font-medium flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#6b7075]" />
                     Recent Sessions
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-                <Table>
-                    <TableHeader className="bg-white/5">
-                        <TableRow className="border-white/10 hover:bg-white/5">
-                            <TableHead className="text-gray-300">Problem</TableHead>
-                            <TableHead className="text-gray-300">Mode</TableHead>
-                            <TableHead className="text-gray-300">Result</TableHead>
-                            <TableHead className="text-gray-300">Partner</TableHead>
-                            <TableHead className="text-gray-300">Duration</TableHead>
-                            <TableHead className="text-gray-300">Date</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {sessions.map((session) => (
-                            <TableRow key={session.id} className="border-white/10 hover:bg-white/5 transition-colors">
-                                <TableCell>
-                                    <div className="flex flex-col">
-                                        <span className="text-white font-medium">{session.problem.title}</span>
-                                        <span className={`text-xs ${session.problem.difficulty === 'easy' ? 'text-green-400' :
-                                                session.problem.difficulty === 'medium' ? 'text-yellow-400' :
-                                                    'text-red-400'
-                                            }`}>
+                {/* Desktop table */}
+                <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-xs">
+                        <thead>
+                            <tr className="border-b border-white/[0.06] bg-white/[0.02]">
+                                <th className="text-left px-4 py-2.5 text-[#6b7075] font-medium">Problem</th>
+                                <th className="text-left px-3 py-2.5 text-[#6b7075] font-medium">Mode</th>
+                                <th className="text-left px-3 py-2.5 text-[#6b7075] font-medium">Result</th>
+                                <th className="text-left px-3 py-2.5 text-[#6b7075] font-medium hidden md:table-cell">Partner</th>
+                                <th className="text-left px-3 py-2.5 text-[#6b7075] font-medium">Time</th>
+                                <th className="text-left px-3 py-2.5 text-[#6b7075] font-medium hidden lg:table-cell">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sessions.map((session) => (
+                                <tr
+                                    key={session.id}
+                                    className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors last:border-0"
+                                >
+                                    <td className="px-4 py-3 max-w-[180px]">
+                                        <p className="text-[#cfd3d6] font-medium truncate" title={session.problem.title}>
+                                            {session.problem.title}
+                                        </p>
+                                        <span className={`text-[10px] ${difficultyColor[session.problem.difficulty] ?? 'text-[#6b7075]'}`}>
                                             {session.problem.difficulty.charAt(0).toUpperCase() + session.problem.difficulty.slice(1)}
                                         </span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-1.5">
-                                        {session.mode === 'challenge' ? (
-                                            <Trophy className="w-3 h-3 text-yellow-500" />
-                                        ) : (
-                                            <User className="w-3 h-3 text-blue-400" />
-                                        )}
-                                        <span className="text-gray-300 capitalize text-sm">{session.mode}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2">
-                                        {session.result.solved ? (
-                                            <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20">
-                                                <CheckCircle className="w-3 h-3 mr-1" />
-                                                Solved
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20">
-                                                <XCircle className="w-3 h-3 mr-1" />
-                                                Failed
-                                            </Badge>
-                                        )}
-                                        <span className="text-xs text-gray-500">
-                                            ({session.result.testCasesPassed}/{session.result.totalTestCases})
+                                    </td>
+                                    <td className="px-3 py-3">
+                                        <div className="flex items-center gap-1.5 text-[#8a9099]">
+                                            {session.mode === 'challenge'
+                                                ? <Trophy className="w-3 h-3 text-yellow-500" />
+                                                : <User className="w-3 h-3 text-blue-400" />}
+                                            <span className="capitalize">{session.mode}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-3 py-3">
+                                        <div className="flex items-center gap-1.5">
+                                            {session.result.solved
+                                                ? <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                                                : <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />}
+                                            <span className={session.result.solved ? 'text-green-400' : 'text-red-400'}>
+                                                {session.result.testCasesPassed}/{session.result.totalTestCases}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-3 py-3 hidden md:table-cell">
+                                        <span className="text-[#6b7075] truncate max-w-[100px] block" title={session.partner?.name ?? 'Unknown'}>
+                                            {session.partner?.name ?? 'Unknown'}
                                         </span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2 text-gray-300">
-                                        <User className="w-4 h-4 text-gray-500" />
-                                        {session.partner?.name || 'Unknown'}
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2 text-gray-300 font-mono text-sm">
-                                        <Clock className="w-3 h-3 text-gray-500" />
+                                    </td>
+                                    <td className="px-3 py-3 font-mono text-[#6b7075]">
                                         {formatDuration(session.duration)}
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2 text-gray-400 text-sm">
-                                        <Calendar className="w-3 h-3" />
+                                    </td>
+                                    <td className="px-3 py-3 text-[#4a5057] hidden lg:table-cell whitespace-nowrap">
                                         {formatDistanceToNow(new Date(session.date), { addSuffix: true })}
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Mobile card list */}
+                <div className="sm:hidden divide-y divide-white/[0.04]">
+                    {sessions.map((session) => (
+                        <div key={session.id} className="px-4 py-3 space-y-1.5">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                    <p className="text-[#cfd3d6] text-xs font-medium truncate">{session.problem.title}</p>
+                                    <span className={`text-[10px] ${difficultyColor[session.problem.difficulty] ?? 'text-[#6b7075]'}`}>
+                                        {session.problem.difficulty.charAt(0).toUpperCase() + session.problem.difficulty.slice(1)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    {session.result.solved
+                                        ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
+                                        : <XCircle className="w-3.5 h-3.5 text-red-400" />}
+                                    <span className={`text-[10px] ${session.result.solved ? 'text-green-400' : 'text-red-400'}`}>
+                                        {session.result.testCasesPassed}/{session.result.totalTestCases}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-[#4a5057]">
+                                <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />{formatDuration(session.duration)}
+                                </span>
+                                <span className="capitalize">{session.mode}</span>
+                                <span className="flex items-center gap-1 ml-auto">
+                                    <Calendar className="w-3 h-3" />
+                                    {formatDistanceToNow(new Date(session.date), { addSuffix: true })}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </CardContent>
         </Card>
     );

@@ -1,5 +1,5 @@
 import { validationResult } from 'express-validator';
-import { ValidationError } from '@/utils/errors.js';
+import { ValidationError } from '../utils/errors.js';
 // Middleware to handle validation errors
 export const validateRequest = (req, _res, next) => {
     const errors = validationResult(req);

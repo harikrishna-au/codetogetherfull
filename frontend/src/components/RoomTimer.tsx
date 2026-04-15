@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, AlertTriangle } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 
@@ -30,7 +30,7 @@ const RoomTimer: React.FC<RoomTimerProps> = ({ roomId, className = '' }) => {
   };
 
   // Update timer display
-  const updateTimer = () => {
+  const updateTimer = useCallback(() => {
     if (!timerData || !timerData.isActive) {
       setTimeRemaining(0);
       return;
@@ -47,7 +47,7 @@ const RoomTimer: React.FC<RoomTimerProps> = ({ roomId, className = '' }) => {
     if (remaining === 0 && !isExpired) {
       setIsExpired(true);
     }
-  };
+  }, [timerData, isExpired]);
 
   // Socket event handlers
   useEffect(() => {
@@ -57,7 +57,7 @@ const RoomTimer: React.FC<RoomTimerProps> = ({ roomId, className = '' }) => {
     socket.emit('requestTimerSync', { roomId });
 
     // Listen for timer sync events
-    const handleTimerSync = (data: any) => {
+    const handleTimerSync = (data: TimerData & { roomId: string }) => {
       if (data.roomId === roomId) {
         console.log('[RoomTimer] Received timer sync:', data);
         setTimerData({
@@ -71,7 +71,7 @@ const RoomTimer: React.FC<RoomTimerProps> = ({ roomId, className = '' }) => {
     };
 
     // Listen for timer expiry
-    const handleTimerExpired = (data: any) => {
+    const handleTimerExpired = (data: { roomId: string }) => {
       if (data.roomId === roomId) {
         console.log('[RoomTimer] Timer expired for room:', roomId);
         setIsExpired(true);
@@ -100,7 +100,7 @@ const RoomTimer: React.FC<RoomTimerProps> = ({ roomId, className = '' }) => {
 
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [timerData, isExpired]);
+  }, [timerData, isExpired, updateTimer]);
 
   // Don't render if no timer data
   if (!timerData) {

@@ -31,7 +31,7 @@ const envSchema = z.object({
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.string().default('900000').transform(Number),
-  RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform(Number),
+  RATE_LIMIT_MAX_REQUESTS: z.string().default('1000').transform(Number),
 
   // Timeouts
   SESSION_TIMEOUT_MINUTES: z.string().default('60').transform(Number),

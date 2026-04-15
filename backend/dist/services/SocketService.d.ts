@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents } from '@/types/index.js';
+import type { ClientToServerEvents, ServerToClientEvents } from '../types/index.js';
 export declare class SocketService {
     private io;
     private connectedUsers;

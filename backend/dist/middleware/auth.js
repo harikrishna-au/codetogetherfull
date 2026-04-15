@@ -1,8 +1,8 @@
 import { createClerkClient } from '@clerk/clerk-sdk-node';
-import { logger } from '@/utils/logger.js';
-import { AuthenticationError, sendErrorResponse } from '@/utils/errors.js';
-import { env } from '@/config/env.js';
-import { AuthService } from '@/services/AuthService.js';
+import { logger } from '../utils/logger.js';
+import { AuthenticationError, sendErrorResponse } from '../utils/errors.js';
+import { env } from '../config/env.js';
+import { AuthService } from '../services/AuthService.js';
 const clerkClient = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
 // Extract token from request
 const extractToken = (req) => {

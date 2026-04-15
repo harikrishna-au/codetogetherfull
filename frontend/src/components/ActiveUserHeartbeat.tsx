@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { API_ENDPOINTS } from "@/lib/api";
 
@@ -7,12 +7,18 @@ const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 
 export default function ActiveUserHeartbeat({ userId }: { userId: string }) {
   const [showIdleDialog, setShowIdleDialog] = useState(false);
+  const showIdleDialogRef = useRef(false);
   const idleTimer = useRef<NodeJS.Timeout | null>(null);
   const heartbeatTimer = useRef<NodeJS.Timeout | null>(null);
   const lastActivity = useRef(Date.now());
 
+  // Keep ref in sync with state so event listeners always see current value
+  useEffect(() => {
+    showIdleDialogRef.current = showIdleDialog;
+  }, [showIdleDialog]);
+
   // Send heartbeat to backend
-  const sendHeartbeat = async () => {
+  const sendHeartbeat = useCallback(async () => {
     try {
       await fetch(API_ENDPOINTS.HEARTBEAT, {
         method: "POST",
@@ -23,10 +29,10 @@ export default function ActiveUserHeartbeat({ userId }: { userId: string }) {
     } catch (err) {
       // Optionally handle error
     }
-  };
+  }, [userId]);
 
   // Mark user as inactive when they leave
-  const markUserInactive = async () => {
+  const markUserInactive = useCallback(async () => {
     try {
       await fetch(API_ENDPOINTS.USER_INACTIVE, {
         method: "POST",
@@ -37,22 +43,23 @@ export default function ActiveUserHeartbeat({ userId }: { userId: string }) {
     } catch (err) {
       // Handle error silently
     }
-  };
+  }, [userId]);
 
   // Reset idle timer on user activity
-  const resetIdleTimer = () => {
+  const resetIdleTimer = useCallback(() => {
     lastActivity.current = Date.now();
-    if (showIdleDialog) setShowIdleDialog(false);
+    // Use ref to read current dialog state without stale closure
+    if (showIdleDialogRef.current) setShowIdleDialog(false);
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => {
       setShowIdleDialog(true);
     }, IDLE_TIMEOUT);
-  };
+  }, []);
 
   useEffect(() => {
     // Send initial heartbeat when component mounts (user comes to app)
     sendHeartbeat();
-    
+
     // Listen for user activity
     const events = ["mousemove", "keydown", "mousedown", "touchstart"];
     events.forEach((event) => window.addEventListener(event, resetIdleTimer));
@@ -64,7 +71,7 @@ export default function ActiveUserHeartbeat({ userId }: { userId: string }) {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     return () => {
       events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -72,17 +79,17 @@ export default function ActiveUserHeartbeat({ userId }: { userId: string }) {
       // Mark user inactive when component unmounts
       markUserInactive();
     };
-  }, []);
+  }, [sendHeartbeat, markUserInactive, resetIdleTimer]);
 
   useEffect(() => {
     // Heartbeat interval
     heartbeatTimer.current = setInterval(() => {
-      if (!showIdleDialog) sendHeartbeat();
+      if (!showIdleDialogRef.current) sendHeartbeat();
     }, HEARTBEAT_INTERVAL);
     return () => {
       if (heartbeatTimer.current) clearInterval(heartbeatTimer.current);
     };
-  }, [showIdleDialog]);
+  }, [sendHeartbeat]);
 
   // When user confirms they're active, reset idle timer and send heartbeat
   const handleContinue = () => {

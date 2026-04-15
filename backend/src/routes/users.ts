@@ -91,7 +91,7 @@ router.get('/stats/:userId', asyncHandler(async (req: Request, res: Response) =>
 
     questionIds.forEach((qid: string) => {
         const difficulty = difficultyMap.get(qid);
-        if (difficulty && problemsByDifficulty.hasOwnProperty(difficulty)) {
+        if (difficulty && Object.prototype.hasOwnProperty.call(problemsByDifficulty, difficulty)) {
             problemsByDifficulty[difficulty as keyof typeof problemsByDifficulty]++;
         }
     });

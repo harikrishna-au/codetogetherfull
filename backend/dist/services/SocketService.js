@@ -1,7 +1,7 @@
 import * as Y from 'yjs';
-import { authenticateSocket } from '@/middleware/auth.js';
-import { supabase } from '@/config/supabase.js';
-import { logger } from '@/utils/logger.js';
+import { authenticateSocket } from '../middleware/auth.js';
+import { supabase } from '../config/supabase.js';
+import { logger } from '../utils/logger.js';
 import { TimerService } from './TimerService.js';
 import { MatchmakingService } from './MatchmakingService.js';
 export class SocketService {
@@ -178,6 +178,56 @@ export class SocketService {
                 passed: data.passed,
                 total: data.total,
                 timestamp: Date.now(),
+            });
+        });
+        // First successful submission wins the round
+        socket.on('submissionWin', async (data) => {
+            const userId = socket.user?.userId || 'unknown';
+            logger.info('Submission win', { userId, roomId: data.roomId, passed: data.passed, total: data.total });
+            // Mark the room as ended
+            const { error: roomEndError } = await supabase
+                .from('rooms')
+                .update({ status: 'ended', ended_at: new Date().toISOString() })
+                .eq('room_id', data.roomId);
+            if (roomEndError) {
+                logger.warn('Failed to end room on submission win', { roomId: data.roomId, error: roomEndError });
+            }
+            // Reset both participants' user states to idle
+            const { data: room } = await supabase
+                .from('rooms')
+                .select('participant1_id, participant2_id')
+                .eq('room_id', data.roomId)
+                .single();
+            if (room) {
+                const participants = [room.participant1_id, room.participant2_id].filter(Boolean);
+                await supabase.from('user_states').update({
+                    state: 'idle',
+                    room_id: null,
+                    last_active: new Date().toISOString(),
+                }).in('user_id', participants);
+            }
+            // Stop the room timer since the match is over
+            this.timerService.stopRoomTimer(data.roomId);
+            // Clean up Yjs doc for the room
+            this.cleanupYjsRoom(data.roomId);
+            // Broadcast to everyone in the room (including sender) so all clients know who won
+            this.io.to(data.roomId).emit('roundWinner', {
+                winnerId: userId,
+                passed: data.passed,
+                total: data.total,
+                runtime: data.runtime,
+                language: data.language,
+                timestamp: Date.now(),
+            });
+        });
+        // Sync code: one user shares their code to activate collaborative editing
+        socket.on('syncCode', (data) => {
+            const userId = socket.user?.userId || 'unknown';
+            logger.info('Code sync initiated', { userId, roomId: data.roomId });
+            // Broadcast to everyone in the room (including sender) so all clients activate Yjs with this code
+            this.io.to(data.roomId).emit('codeSynced', {
+                initiatorId: userId,
+                code: data.code,
             });
         });
         // ---- Yjs collaborative editing ----
@@ -358,15 +408,20 @@ export class SocketService {
                     return;
                 }
             }
-            else if (userState.state === 'waiting') {
-                // User is already in queue
-                socket.emit('queueRejoined', {
-                    waiting: true,
+            else if (userState.state === 'waiting' && userState.mode && userState.difficulty) {
+                // Re-add to in-memory queue with CURRENT socket id (old socketId is stale after reconnect)
+                await supabase.from('user_states')
+                    .update({ socket_id: socket.id, is_active: true, last_active: new Date().toISOString() })
+                    .eq('user_id', userId);
+                await this.matchmakingService.joinQueue(userId, socket.id, userState.mode, userState.difficulty);
+                logger.info('User re-added to queue on rejoin', {
+                    userId,
                     mode: userState.mode,
                     difficulty: userState.difficulty,
+                    socketId: socket.id,
                 });
-                logger.info('User rejoined existing queue', {
-                    userId,
+                socket.emit('queueRejoined', {
+                    waiting: true,
                     mode: userState.mode,
                     difficulty: userState.difficulty,
                 });
@@ -468,11 +523,16 @@ export class SocketService {
         try {
             // Remove from in-memory matchmaking queues if still waiting
             this.matchmakingService.removeUserFromAllQueues(userId);
-            // Update user state
+            // Clear connection info for all states
             await supabase.from('user_states').update({
                 socket_id: null,
-                is_active: false
+                is_active: false,
             }).eq('user_id', userId);
+            // Reset 'waiting' → 'idle' so stale queue state doesn't block future matchmaking
+            await supabase.from('user_states').update({
+                state: 'idle',
+                queue_joined_at: null,
+            }).eq('user_id', userId).eq('state', 'waiting');
             // Remove from connection mappings
             this.connectedUsers.delete(userId);
             this.socketUsers.delete(socket.id);
@@ -507,6 +567,21 @@ export class SocketService {
     async notifyRoom(roomId, event, data) {
         this.io.to(roomId).emit(event, data);
         logger.debug('Notification sent to room', { roomId, event });
+    }
+    /** Remove a single user from all in-memory queues (e.g. admin cancel). */
+    removeUserFromQueues(userId) {
+        this.matchmakingService.removeUserFromAllQueues(userId);
+    }
+    /** Clear all in-memory matchmaking queues. Returns number of users removed. */
+    clearAllQueues() {
+        const sizes = this.matchmakingService.getQueueSizes();
+        const total = Object.values(sizes).reduce((a, b) => a + b, 0);
+        this.matchmakingService.clearAllQueues();
+        return total;
+    }
+    /** Live queue sizes keyed by "mode:difficulty" */
+    getQueueStats() {
+        return this.matchmakingService.getQueueSizes();
     }
     getConnectedUserCount() {
         return this.connectedUsers.size;

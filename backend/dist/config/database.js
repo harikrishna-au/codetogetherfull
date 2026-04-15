@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { dbConfig } from './env.js';
-import { logger } from '@/utils/logger.js';
+import { logger } from '../utils/logger.js';
 let isConnected = false;
 export const connectDatabase = async () => {
     if (isConnected) {

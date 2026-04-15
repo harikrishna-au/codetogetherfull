@@ -128,7 +128,7 @@ export class CodeRunner {
     }
 
     private parseJavaSignature(code: string): FunctionSignature {
-        const match = code.match(/public\s+([\w<>\[\]\s,]+?)\s+(\w+)\s*\(([^)]*)\)/);
+        const match = code.match(/public\s+([\w<>[\]\s,]+?)\s+(\w+)\s*\(([^)]*)\)/);
         if (!match) throw new AppError('Cannot parse Java function signature', 400);
         const returnType = match[1].trim();
         const funcName = match[2];
@@ -146,10 +146,10 @@ export class CodeRunner {
 
     private parseCppSignature(code: string): FunctionSignature {
         // Try class Solution { public: ... } pattern first
-        let match = code.match(/public:\s*\n?\s*([\w<>&\*\s:]+?)\s+(\w+)\s*\(([^)]*)\)/);
+        let match = code.match(/public:\s*\n?\s*([\w<>&*\s:]+?)\s+(\w+)\s*\(([^)]*)\)/);
         // Fallback: standalone function (after #include/using lines)
         if (!match) {
-            match = code.match(/(?:^|\n)\s*([\w<>&\*:]+(?:<[\w<>,\s]+>)?[*&\s]*)\s+(\w+)\s*\(([^)]*)\)\s*\{/m);
+            match = code.match(/(?:^|\n)\s*([\w<>&*:]+(?:<[\w<>,\s]+>)?[*&\s]*)\s+(\w+)\s*\(([^)]*)\)\s*\{/m);
         }
         if (!match) throw new AppError('Cannot parse C++ function signature', 400);
         const returnType = match[1].trim();
@@ -190,7 +190,7 @@ export class CodeRunner {
         if (language === 'java') return /public\s+void\s+/.test(starterCode);
         if (language === 'cpp') {
             // Check class-based pattern
-            const m = starterCode.match(/public:\s*\n?\s*([\w<>&\*\s:]+?)\s+\w+\s*\(/);
+            const m = starterCode.match(/public:\s*\n?\s*([\w<>&*\s:]+?)\s+\w+\s*\(/);
             if (m) return m[1].trim() === 'void';
             // Check standalone function pattern
             const m2 = starterCode.match(/(?:^|\n)\s*(void)\s+\w+\s*\(/m);
@@ -862,9 +862,6 @@ ${testBlocks}
         }
 
         const match = JSON.stringify(actual) === JSON.stringify(expected);
-        if (!match) {
-
-        }
         return match;
     }
 

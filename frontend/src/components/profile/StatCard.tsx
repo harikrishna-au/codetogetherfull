@@ -19,17 +19,17 @@ export const StatCard = ({
     subtitle,
     loading = false,
     className = '',
-    iconColor = 'text-purple-400'
+    iconColor = 'text-primary',
 }: StatCardProps) => {
     if (loading) {
         return (
-            <Card className={`bg-white/5 border-white/10 ${className}`}>
-                <CardContent className="p-6">
-                    <div className="flex items-center space-x-4">
-                        <Skeleton className="h-12 w-12 rounded-full bg-white/10" />
-                        <div className="space-y-2">
-                            <Skeleton className="h-4 w-24 bg-white/10" />
-                            <Skeleton className="h-8 w-16 bg-white/10" />
+            <Card className={`bg-card/50 border border-border/30 ${className}`}>
+                <CardContent className="p-5">
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-lg bg-muted/40" />
+                        <div className="space-y-2 flex-1">
+                            <Skeleton className="h-3 w-16 bg-muted/40" />
+                            <Skeleton className="h-6 w-12 bg-muted/40" />
                         </div>
                     </div>
                 </CardContent>
@@ -38,17 +38,17 @@ export const StatCard = ({
     }
 
     return (
-        <Card className={`bg-white/5 border-white/10 backdrop-blur hover:bg-white/10 transition-colors ${className}`}>
-            <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-full bg-white/5 ${iconColor}`}>
-                        <Icon className="w-6 h-6" />
+        <Card className={`bg-card/50 border border-border/40 backdrop-blur-sm hover:bg-card/70 hover:border-border/60 transition-all duration-300 shadow-sm hover:shadow-md ${className}`}>
+            <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                    <div className={`p-2.5 rounded-lg bg-primary/10 border border-primary/20 ${iconColor} flex-shrink-0`}>
+                        <Icon className="w-5 h-5" />
                     </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-400">{label}</p>
-                        <h3 className="text-2xl font-bold text-white">{value}</h3>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{label}</p>
+                        <h3 className="text-2xl font-bold text-foreground leading-tight">{value}</h3>
                         {subtitle && (
-                            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{subtitle}</p>
                         )}
                     </div>
                 </div>

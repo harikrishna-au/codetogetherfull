@@ -1,6 +1,6 @@
-import { connectDatabase, disconnectDatabase } from '@/config/database.js';
-import { Question } from '@/models/Question.js';
-import { logger } from '@/utils/logger.js';
+import { connectDatabase, disconnectDatabase } from '../config/database.js';
+import { Question } from '../models/Question.js';
+import { logger } from '../utils/logger.js';
 const sampleQuestions = [
     {
         questionId: 'q1',

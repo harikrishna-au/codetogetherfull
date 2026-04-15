@@ -1,10 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-// ...existing code...
 import ReactTextareaAutosize from 'react-textarea-autosize';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Send, X } from 'lucide-react';
 
 interface ChatMessage {
   id: number;
@@ -20,7 +17,7 @@ interface ChatSidebarProps {
   setChatMessage: (v: string) => void;
   chatMessages: ChatMessage[];
   handleSendMessage: () => void;
-  currentUserName?: string; // pass current user name/email from CodingSession
+  currentUserName?: string;
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -35,42 +32,47 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
   if (!isChatOpen) return null;
+
   return (
-    <div className="w-80 bg-[#252526] border-l border-[#3e3e42] flex flex-col">
-      <div className="h-12 bg-[#2d2d30] border-b border-[#3e3e42] flex items-center justify-between px-4">
-        <span className="text-sm font-medium text-[#cccccc]">Chat</span>
-        <Button
-          variant="ghost"
-          size="sm"
+    <div className="w-72 bg-[#0d0d0d] border-l border-white/[0.06] flex flex-col flex-shrink-0">
+      {/* Header */}
+      <div className="h-10 border-b border-white/[0.06] flex items-center justify-between px-3 flex-shrink-0">
+        <span className="text-xs font-medium text-[#8a9099] tracking-wide">Chat</span>
+        <button
           onClick={() => setIsChatOpen(false)}
-          className="h-6 w-6 p-0 hover:bg-gray-700"
+          className="p-1 rounded text-[#4a5057] hover:text-[#8a9099] hover:bg-white/[0.04] transition-colors"
+          aria-label="Close chat"
         >
-          ×
-        </Button>
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
-      <ScrollArea className="flex-1 p-2">
-        <div className="space-y-1">
+
+      {/* Messages */}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-2 space-y-1.5">
+          {chatMessages.length === 0 && (
+            <p className="text-[10px] text-[#3a3f45] text-center pt-4">No messages yet</p>
+          )}
           {chatMessages.map((msg) => {
-            const isMe = currentUserName && (msg.user === currentUserName);
+            const isMe = currentUserName && msg.user === currentUserName;
             return (
-              <div
-                key={msg.id}
-                className="mb-1"
-              >
-                <div className="w-full rounded-lg px-2 py-1 bg-[#1e1e1e] shadow text-xs flex flex-col items-start">
-                  <div className="w-full flex items-center justify-between mb-0.5">
-                    <span className={isMe ? 'text-[#4ec9b0] text-[10px] font-semibold' : 'text-[#569cd6] text-[10px] font-medium'}>
-                      {isMe ? 'You' : 'Partner'}
-                    </span>
-                    <span className="text-[9px] text-[#888888] ml-2">{msg.timestamp}</span>
-                  </div>
-                  <span className="w-full break-words whitespace-pre-line text-[#cccccc] text-xs">{msg.message}</span>
+              <div key={msg.id} className={`flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[9px] font-medium ${isMe ? 'text-[#4ec9b0]' : 'text-[#569cd6]'}`}>
+                    {isMe ? 'You' : 'Partner'}
+                  </span>
+                  <span className="text-[9px] text-[#2e3338]">{msg.timestamp}</span>
+                </div>
+                <div className={`max-w-[90%] rounded-lg px-2.5 py-1.5 text-[11px] leading-relaxed break-words whitespace-pre-line ${
+                  isMe
+                    ? 'bg-white/[0.07] text-[#cfd3d6] rounded-tr-sm'
+                    : 'bg-white/[0.04] text-[#a0a6ad] rounded-tl-sm'
+                }`}>
+                  {msg.message}
                 </div>
               </div>
             );
@@ -78,13 +80,15 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
-      <div className="p-2 border-t border-[#3e3e42]">
-        <div className="flex space-x-2">
+
+      {/* Input */}
+      <div className="p-2 border-t border-white/[0.06] flex-shrink-0">
+        <div className="flex items-end gap-1.5">
           <ReactTextareaAutosize
             value={chatMessage}
             onChange={(e) => setChatMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 min-h-[28px] max-h-32 resize-none bg-[#1e1e1e] border border-[#3e3e42] rounded px-2 py-1 text-white text-xs focus:outline-none"
+            placeholder="Message…"
+            className="flex-1 min-h-[30px] max-h-28 resize-none bg-white/[0.04] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-[11px] text-[#cfd3d6] placeholder:text-[#3a3f45] focus:outline-none focus:border-white/[0.16] focus:bg-white/[0.06] transition-all"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -92,9 +96,14 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
               }
             }}
           />
-          <Button onClick={handleSendMessage} size="sm" className="bg-[#0e639c] hover:bg-[#1177bb] px-2">
-            <Send className="w-3 h-3" />
-          </Button>
+          <button
+            onClick={handleSendMessage}
+            disabled={!chatMessage.trim()}
+            className="p-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] text-[#6b7075] hover:text-[#cfd3d6] disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0"
+            aria-label="Send message"
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </div>

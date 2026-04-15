@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import type { AuthenticatedRequest } from '@/types/index.js';
+import type { AuthenticatedRequest } from '../types/index.js';
 export declare const authenticateToken: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
 export declare const optionalAuth: (req: AuthenticatedRequest, _res: Response, next: NextFunction) => Promise<void>;
 export declare const requireAdmin: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;

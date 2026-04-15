@@ -249,7 +249,7 @@ const CodingSession = () => {
             endReason: data.reason || 'partner-exit',
           }),
         });
-      } catch { }
+      } catch (_e) { /* ignore save errors on room close */ }
       setTimeout(() => {
         navigate(`/session/${data.roomId || roomId}/results`, { replace: true });
       }, 1500);

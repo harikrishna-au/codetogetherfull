@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Socket } from 'socket.io-client';
 
 export interface ChatMessage {
   id: number;
@@ -8,7 +9,7 @@ export interface ChatMessage {
 }
 
 interface UseChatProps {
-  socket: any;
+  socket: Socket | null;
   roomId: string;
   userName: string;
 }
@@ -26,11 +27,11 @@ export function useChat({ socket, roomId, userName }: UseChatProps) {
     const tryJoinRoom = () => {
       if (socket.connected && roomId && !didJoin) {
         didJoin = true;
-        socket.emit('join', { roomId }, (ack: any) => {
-          socket.emit('fetchChatHistory', { roomId }, (res: any) => {
+        socket.emit('join', { roomId }, (_ack: unknown) => {
+          socket.emit('fetchChatHistory', { roomId }, (res: { success: boolean; messages: { userId?: string; sender?: string; text?: string; message?: string; timestamp: number }[] }) => {
             if (res && res.success && Array.isArray(res.messages)) {
               setChatMessages(
-                res.messages.map((msg: any, idx: number) => ({
+                res.messages.map((msg, idx: number) => ({
                   id: idx + 1,
                   user: msg.userId || msg.sender,
                   message: msg.text || msg.message,

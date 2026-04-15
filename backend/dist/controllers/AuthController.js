@@ -1,6 +1,6 @@
-import { AuthService } from '@/services/AuthService.js';
-import { logger } from '@/utils/logger.js';
-import { asyncHandler, ValidationError } from '@/utils/errors.js';
+import { AuthService } from '../services/AuthService.js';
+import { logger } from '../utils/logger.js';
+import { asyncHandler, ValidationError } from '../utils/errors.js';
 export class AuthController {
     // Methods handled by Clerk: login, logout, refreshToken are no longer needed
     // Get current user profile

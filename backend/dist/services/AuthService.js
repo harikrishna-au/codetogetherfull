@@ -1,7 +1,7 @@
-import { env } from '@/config/env.js';
-import { supabase } from '@/config/supabase.js';
-import { logger } from '@/utils/logger.js';
-import { AuthenticationError, ValidationError } from '@/utils/errors.js';
+import { env } from '../config/env.js';
+import { supabase } from '../config/supabase.js';
+import { logger } from '../utils/logger.js';
+import { AuthenticationError, ValidationError } from '../utils/errors.js';
 import { createClerkClient } from '@clerk/clerk-sdk-node';
 const clerkClient = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
 export class AuthService {

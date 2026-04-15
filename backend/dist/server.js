@@ -6,28 +6,29 @@ import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import { env, corsConfig, rateLimitConfig } from '@/config/env.js';
-import { supabase } from '@/config/supabase.js';
-import { logger, requestLogger } from '@/utils/logger.js';
-import { globalErrorHandler } from '@/utils/errors.js';
+import { env, corsConfig, rateLimitConfig } from './config/env.js';
+import { supabase } from './config/supabase.js';
+import { logger, requestLogger } from './utils/logger.js';
+import { globalErrorHandler } from './utils/errors.js';
 // Import routes
-import authRoutes from '@/routes/auth.js';
-import userRoutes from '@/routes/users.js';
-import sessionRoutes from '@/routes/session.js';
-import questionsRouter from '@/routes/questions.js';
-import testCasesRouter from '@/routes/testcases.js';
-import queueRouter from '@/routes/queue.js';
-import roomsRouter from '@/routes/rooms.js';
-import executeRouter from '@/routes/execute.js';
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import sessionRoutes from './routes/session.js';
+import questionsRouter from './routes/questions.js';
+import testCasesRouter from './routes/testcases.js';
+import queueRouter from './routes/queue.js';
+import roomsRouter from './routes/rooms.js';
+import executeRouter from './routes/execute.js';
 // Import services
-import { SocketService } from '@/services/SocketService.js';
+import { SocketService } from './services/SocketService.js';
 // Create Express app
 const app = express();
 const server = createServer(app);
 // Create Socket.IO server
 const io = new Server(server, {
     cors: corsConfig,
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
+    pingInterval: 25000,
     pingTimeout: 60000,
 });
 // Security middleware
@@ -108,11 +109,14 @@ app.use('*', (_req, res) => {
         timestamp: new Date().toISOString(),
     });
 });
+// Singleton SocketService instance — exported so routes can access matchmaking
+let _socketService = null;
+export function getSocketService() { return _socketService; }
 // Initialize database and start server
 const startServer = async () => {
     try {
         // Initialize Socket.IO service (owns matchmaking internally)
-        new SocketService(io);
+        _socketService = new SocketService(io);
         // Start server
         const PORT = env.PORT || 4000;
         server.listen(PORT, () => {

@@ -94,7 +94,7 @@ const ProfilePage = () => {
                 {/* Back button */}
                 <button
                     onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 text-sm text-[#8a9099] hover:text-[#e2e5e8] transition-colors duration-200 group"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200 group"
                 >
                     <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
                     Back
@@ -103,36 +103,36 @@ const ProfilePage = () => {
                 {/* User Header */}
                 <div className="flex items-center gap-6 animate-fade-in">
                     <div className="relative">
-                        <div className="absolute inset-0 rounded-full bg-white/[0.06] blur-xl scale-110" />
-                        <Avatar className="relative h-20 w-20 ring-1 ring-white/[0.12]">
+                        <div className="absolute inset-0 rounded-full bg-primary/10 blur-xl scale-110" />
+                        <Avatar className="relative h-20 w-20 ring-2 ring-primary/30 ring-offset-2">
                             <AvatarImage src={user?.imageUrl} />
-                            <AvatarFallback className="bg-white/[0.06] text-[#e2e5e8] text-2xl font-semibold border border-white/[0.08]">
+                            <AvatarFallback className="bg-primary/20 text-primary font-semibold text-lg border border-primary/40">
                                 {user?.fullName?.charAt(0) || user?.primaryEmailAddress?.emailAddress?.charAt(0) || '?'}
                             </AvatarFallback>
                         </Avatar>
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold text-[#e2e5e8] tracking-tight">
+                        <h1 className="text-4xl font-black text-foreground tracking-tight">
                             {user?.fullName || 'Coder'}
                         </h1>
-                        <p className="text-[#6b7075] text-sm mt-1 flex items-center gap-1.5">
+                        <p className="text-muted-foreground text-sm mt-2 flex items-center gap-1.5">
                             <UserIcon className="w-3.5 h-3.5" />
                             {user?.primaryEmailAddress?.emailAddress}
                         </p>
-                        <p className="text-[#4a5057] text-xs mt-1">
+                        <p className="text-muted-foreground/70 text-xs mt-1">
                             Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
                         </p>
                     </div>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-fade-in">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
                     <StatCard
                         icon={Target}
                         label="Total Sessions"
                         value={stats?.totalSessions || 0}
                         loading={loading}
-                        iconColor="text-[#cfd3d6]"
+                        iconColor="text-blue-500"
                     />
                     <StatCard
                         icon={Trophy}
@@ -140,21 +140,21 @@ const ProfilePage = () => {
                         value={getWinRate()}
                         subtitle={`${stats?.winLossRecord.wins || 0}W — ${stats?.winLossRecord.losses || 0}L`}
                         loading={loading}
-                        iconColor="text-yellow-400"
+                        iconColor="text-amber-500"
                     />
                     <StatCard
                         icon={Flame}
                         label="Win Streak"
                         value={stats?.currentStreak || 0}
                         loading={loading}
-                        iconColor="text-orange-400"
+                        iconColor="text-orange-500"
                     />
                     <StatCard
                         icon={Clock}
                         label="Coding Time"
                         value={formatTime(stats?.totalCodingTime || 0)}
                         loading={loading}
-                        iconColor="text-[#8a9099]"
+                        iconColor="text-green-500"
                     />
                 </div>
 

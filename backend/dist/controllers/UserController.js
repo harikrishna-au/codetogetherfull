@@ -1,6 +1,6 @@
-import { supabase } from '@/config/supabase.js';
-import { logger } from '@/utils/logger.js';
-import { asyncHandler, ValidationError } from '@/utils/errors.js';
+import { supabase } from '../config/supabase.js';
+import { logger } from '../utils/logger.js';
+import { asyncHandler, ValidationError } from '../utils/errors.js';
 export class UserController {
     // Update user heartbeat
     static heartbeat = asyncHandler(async (req, res) => {

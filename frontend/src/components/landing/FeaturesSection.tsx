@@ -1,6 +1,6 @@
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
-import { Users, Code, Timer, Trophy, Zap, Heart } from 'lucide-react';
+import { Users, Code, Timer, Trophy, Zap, Heart, Sparkles } from 'lucide-react';
 
 const features = [
   {
@@ -62,15 +62,15 @@ const FeatureCard = ({ icon: Icon, title, description, index }: FeatureCardProps
     >
       <div className="
         relative overflow-hidden rounded-2xl p-6
-        bg-white/[0.02] border border-white/[0.06]
-        hover:bg-white/[0.05] hover:border-white/[0.12]
-        transition-all duration-500
+        bg-gradient-to-br from-card to-card/50 border border-border/50
+        hover:shadow-lg hover:shadow-primary/10 hover:border-primary/30
+        transition-all duration-500 group-hover:scale-[1.02]
       ">
         {/* Subtle glow on hover */}
         <div className="
           absolute inset-0 opacity-0 group-hover:opacity-100
           transition-opacity duration-500
-          bg-gradient-to-br from-[#cfd3d6]/[0.03] to-transparent
+          bg-gradient-to-br from-primary/5 to-transparent
         " />
 
         <div className="relative z-10">
@@ -84,32 +84,32 @@ const FeatureCard = ({ icon: Icon, title, description, index }: FeatureCardProps
               ease: [0.16, 1, 0.3, 1],
             }}
             className="
-              w-10 h-10 rounded-xl mb-4
+              w-12 h-12 rounded-xl mb-4
               flex items-center justify-center
-              bg-white/[0.04] border border-white/[0.08]
-              group-hover:bg-white/[0.08] group-hover:border-white/[0.15]
+              bg-primary/10 border border-primary/20
+              group-hover:bg-primary/20 group-hover:border-primary/40
               transition-all duration-500
             "
           >
-            <Icon className="w-5 h-5 text-[#cfd3d6] group-hover:text-white transition-colors duration-300" />
+            <Icon className="w-6 h-6 text-primary group-hover:text-accent transition-colors duration-300" />
           </motion.div>
 
           {/* Title */}
-          <h4 className="text-lg font-semibold text-white mb-2 tracking-tight">
+          <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">
             {title}
           </h4>
 
           {/* Description */}
-          <p className="text-sm text-[#6b7075] leading-relaxed group-hover:text-[#8a8f94] transition-colors duration-300">
+          <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/70 transition-colors duration-300">
             {description}
           </p>
         </div>
 
         {/* Bottom accent line */}
         <div className="
-          absolute bottom-0 left-0 right-0 h-[1px]
-          bg-gradient-to-r from-transparent via-[#cfd3d6]/10 to-transparent
-          group-hover:via-[#cfd3d6]/25 transition-all duration-500
+          absolute bottom-0 left-0 right-0 h-[2px]
+          bg-gradient-to-r from-transparent via-primary/20 to-transparent
+          group-hover:via-primary/50 transition-all duration-500
         " />
       </div>
     </motion.div>
@@ -131,16 +131,18 @@ const FeaturesSection = () => {
           animate={isHeaderInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-[#6b7075] mb-3">
+          <p className="text-xs uppercase tracking-[0.2em] text-secondary font-bold mb-3 flex items-center justify-center gap-2">
+            <Sparkles className="w-3 h-3" />
             Why Codetogether
+            <Sparkles className="w-3 h-3" />
           </p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4">
+          <h2 className="text-4xl sm:text-5xl font-black text-foreground tracking-tight mb-4">
             Built for developers who
-            <span className="bg-gradient-to-r from-[#cfd3d6] to-[#8a8f94] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               {' '}grow together
             </span>
           </h2>
-          <div className="mx-auto h-[1px] w-20 bg-gradient-to-r from-transparent via-[#cfd3d6]/30 to-transparent" />
+          <div className="mx-auto h-[2px] w-24 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
         </motion.div>
 
         {/* Feature grid */}

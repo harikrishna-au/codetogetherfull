@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { AuthController } from '@/controllers/AuthController.js';
-import { authenticateToken, rateLimitByUser } from '@/middleware/auth.js';
+import { AuthController } from '../controllers/AuthController.js';
+import { authenticateToken, rateLimitByUser } from '../middleware/auth.js';
 import { body } from 'express-validator';
-import { validateRequest } from '@/middleware/validation.js';
+import { validateRequest } from '../middleware/validation.js';
 const router = Router();
 // Validation rules
 // Validation rules
