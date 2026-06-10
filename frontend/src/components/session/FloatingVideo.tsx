@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { MicOff, VideoOff, Plus, Minus } from 'lucide-react';
+import { MicOff, VideoOff, Plus, Minus, ArrowLeftRight } from 'lucide-react';
 
 /**
  * Floating face bubbles (Around-style): you and your partner as circular video
@@ -61,6 +61,24 @@ const MIN_SCALE = 0.7;
 const MAX_SCALE = 2.2;
 const SCALE_STEP = 0.2;
 
+// Remember position/zoom/swap across camera toggles and reloads
+const PREFS_KEY = 'arena.floatingVideo.prefs';
+
+interface VideoPrefs {
+  x: number;
+  y: number;
+  scale: number;
+  swapped: boolean;
+}
+
+function loadPrefs(): Partial<VideoPrefs> {
+  try {
+    return JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
 const FloatingVideo: React.FC<FloatingVideoProps> = ({
   localStream, remoteStream, isVideoOn, isAudioOn, isConnected, partnerName,
 }) => {
@@ -68,7 +86,12 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
   const initial = displayName.charAt(0).toUpperCase();
 
   // Hover zoom (+ / −) scales the whole cluster
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(() => {
+    const s = loadPrefs().scale;
+    return typeof s === 'number' ? Math.min(MAX_SCALE, Math.max(MIN_SCALE, s)) : 1;
+  });
+  // Which feed gets the big bubble (false = partner big, true = you big)
+  const [swapped, setSwapped] = useState(() => loadPrefs().swapped ?? false);
   const dims = {
     w: BASE.w * scale,
     h: BASE.videoH * scale + NAMEPLATE_H,
@@ -80,11 +103,20 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
   const dimsRef = useRef(dims);
   dimsRef.current = dims;
 
-  // Position is the cluster's top-left corner; start bottom-right.
-  const [pos, setPos] = useState(() => ({
-    x: window.innerWidth - BASE.w - MARGIN,
-    y: window.innerHeight - (BASE.videoH + NAMEPLATE_H) - MARGIN,
-  }));
+  // Position is the cluster's top-left corner; restore last spot or start bottom-right.
+  const [pos, setPos] = useState(() => {
+    const p = loadPrefs();
+    if (typeof p.x === 'number' && typeof p.y === 'number') {
+      return {
+        x: Math.min(Math.max(p.x, 0), window.innerWidth - BASE.w),
+        y: Math.min(Math.max(p.y, 0), window.innerHeight - BASE.videoH - NAMEPLATE_H),
+      };
+    }
+    return {
+      x: window.innerWidth - BASE.w - MARGIN,
+      y: window.innerHeight - (BASE.videoH + NAMEPLATE_H) - MARGIN,
+    };
+  });
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
@@ -133,6 +165,14 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
     return () => window.removeEventListener('resize', onResize);
   }, [snapToCorner]);
 
+  // Persist prefs so toggling the camera (or reloading) restores the exact setup
+  useEffect(() => {
+    if (dragging) return;
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ x: pos.x, y: pos.y, scale, swapped }));
+    } catch { /* storage full/blocked — non-fatal */ }
+  }, [pos, scale, swapped, dragging]);
+
   return (
     <div
       className={`group fixed z-40 select-none touch-none ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
@@ -169,18 +209,29 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
         >
           <Minus className="w-3 h-3" />
         </button>
+        <div className="h-px bg-white/[0.08]" />
+        <button
+          onClick={() => setSwapped(s => !s)}
+          className="w-6 h-6 flex items-center justify-center text-[#cfd3d6] hover:bg-white/[0.1] transition-colors"
+          aria-label="Swap cameras"
+          title="Swap which camera is large"
+        >
+          <ArrowLeftRight className="w-3 h-3" />
+        </button>
       </div>
 
       <div className="relative" style={{ height: BASE.videoH * scale }}>
-        {/* Partner bubble — the big one */}
+        {/* Big bubble — partner by default, you when swapped */}
         <Bubble
-          stream={remoteStream}
+          stream={swapped ? localStream : remoteStream}
+          muted={swapped}
+          mirror={swapped}
           sizePx={dims.partner}
           ring={isConnected
             ? 'ring-2 ring-[#4ec9b0]/70'
             : 'ring-1 ring-white/[0.14]'}
-          fallbackInitial={initial}
-          showFeed={isConnected && !!remoteStream}
+          fallbackInitial={swapped ? 'Y' : initial}
+          showFeed={swapped ? (isVideoOn && !!localStream) : (isConnected && !!remoteStream)}
         />
         {/* waiting pulse when partner not connected */}
         {!isConnected && (
@@ -190,19 +241,35 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
           />
         )}
 
-        {/* Your bubble — smaller, overlapping bottom-right */}
+        {/* Small bubble — overlapping bottom-right */}
         <div className="absolute" style={{ left: dims.localLeft, top: dims.localTop }}>
           <Bubble
-            stream={localStream}
-            muted
-            mirror
+            stream={swapped ? remoteStream : localStream}
+            muted={!swapped}
+            mirror={!swapped}
             sizePx={dims.local}
             ring="ring-2 ring-[#0a0a0a]"
-            fallbackInitial="Y"
-            showFeed={isVideoOn && !!localStream}
+            fallbackInitial={swapped ? initial : 'Y'}
+            showFeed={swapped ? (isConnected && !!remoteStream) : (isVideoOn && !!localStream)}
           />
-          {/* your status chips */}
-          <div className="absolute -bottom-0.5 -right-0.5 flex gap-0.5">
+          {/* your status chips — anchored to whichever bubble shows YOUR feed */}
+          {!swapped && (
+            <div className="absolute -bottom-0.5 -right-0.5 flex gap-0.5">
+              {!isAudioOn && (
+                <span className="w-5 h-5 rounded-full bg-[#1a1c1e] border border-white/[0.14] flex items-center justify-center">
+                  <MicOff className="w-2.5 h-2.5 text-red-400" />
+                </span>
+              )}
+              {!isVideoOn && (
+                <span className="w-5 h-5 rounded-full bg-[#1a1c1e] border border-white/[0.14] flex items-center justify-center">
+                  <VideoOff className="w-2.5 h-2.5 text-[#8a9099]" />
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        {swapped && (
+          <div className="absolute bottom-0 left-1 flex gap-0.5">
             {!isAudioOn && (
               <span className="w-5 h-5 rounded-full bg-[#1a1c1e] border border-white/[0.14] flex items-center justify-center">
                 <MicOff className="w-2.5 h-2.5 text-red-400" />
@@ -214,7 +281,7 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
               </span>
             )}
           </div>
-        </div>
+        )}
       </div>
 
       {/* name plate */}
