@@ -9,8 +9,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import ProblemPanel from '@/components/session/ProblemPanel';
 import EditorPanel, { languageTemplates, type SupportedLanguage } from '@/components/session/EditorPanel';
 import ResultsPanel from '@/components/session/ResultsPanel';
-import ChatSidebar from '@/components/session/ChatSidebar';
-import VideoPanel from '@/components/session/VideoPanel';
+import PartnerRail from '@/components/session/PartnerRail';
 import { useChat } from '@/hooks/useChat';
 import ActiveUserHeartbeat from '@/components/ActiveUserHeartbeat';
 import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
@@ -532,25 +531,15 @@ const CodingSession = () => {
         <div className="flex h-[calc(100vh-2.25rem)]">
           <ResizablePanelGroup direction="horizontal" className="flex-1">
             {/* Left Panel – Problem */}
-            <ResizablePanel defaultSize={35} minSize={25}>
+            <ResizablePanel order={1} defaultSize={30} minSize={22}>
               <ProblemPanel difficulty={difficulty} roomId={roomId} initialQuestion={locationQuestion} />
             </ResizablePanel>
 
             <ResizableHandle withHandle />
 
-            {/* Right Panel – Editor + Results */}
-            <ResizablePanel defaultSize={65}>
+            {/* Center Panel – Editor + Results */}
+            <ResizablePanel order={2} defaultSize={isChatOpen || isVideoOn ? 48 : 70}>
               <div className="flex flex-col h-full">
-              {/* Persistent video panel — visible when camera is on */}
-              {isVideoOn && (
-                <VideoPanel
-                  localStream={localStream}
-                  remoteStream={remoteStream}
-                  isVideoOn={isVideoOn}
-                  isAudioOn={isAudioOn}
-                  isConnected={isWebRTCConnected}
-                />
-              )}
               <div className="flex-1 overflow-hidden">
               <ResizablePanelGroup direction="vertical">
                 <ResizablePanel defaultSize={70} minSize={50}>
@@ -586,19 +575,35 @@ const CodingSession = () => {
               </div>
               </div>
             </ResizablePanel>
-          </ResizablePanelGroup>
 
-          {isChatOpen && (
-            <ChatSidebar
-              isChatOpen={isChatOpen}
-              setIsChatOpen={setIsChatOpen}
-              chatMessage={chatMessage}
-              setChatMessage={setChatMessage}
-              chatMessages={chatMessages}
-              handleSendMessage={handleSendMessage}
-              currentUserName={userName}
-            />
-          )}
+            {/* Right Panel – Partner Rail (presence + video + chat, true side-by-side) */}
+            {(isChatOpen || isVideoOn) && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel order={3} defaultSize={22} minSize={16} maxSize={34}>
+                  <PartnerRail
+                    partnerName={partnerUsers[0]?.name
+                      || chatMessages.find(m => m.user !== userName)?.user}
+                    partnerTyping={partnerTyping}
+                    partnerPresent={isWebRTCConnected || partnerUsers.length > 0
+                      || chatMessages.some(m => m.user !== userName)}
+                    isConnected={isWebRTCConnected}
+                    isVideoOn={isVideoOn}
+                    isAudioOn={isAudioOn}
+                    localStream={localStream}
+                    remoteStream={remoteStream}
+                    isChatOpen={isChatOpen}
+                    setIsChatOpen={setIsChatOpen}
+                    chatMessage={chatMessage}
+                    setChatMessage={setChatMessage}
+                    chatMessages={chatMessages}
+                    handleSendMessage={handleSendMessage}
+                    currentUserName={userName}
+                  />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
         </div>
       </div>
     </>
