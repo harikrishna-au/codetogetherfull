@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { MicOff, VideoOff } from 'lucide-react';
+import { MicOff, VideoOff, Plus, Minus } from 'lucide-react';
 
 /**
  * Floating face bubbles (Around-style): you and your partner as circular video
@@ -19,20 +19,22 @@ interface FloatingVideoProps {
 const Bubble: React.FC<{
   stream: MediaStream | null;
   muted?: boolean;
-  size: string;
+  sizePx: number;
   ring: string;
   fallbackInitial: string;
   showFeed: boolean;
   mirror?: boolean;
-}> = ({ stream, muted = false, size, ring, fallbackInitial, showFeed, mirror = false }) => {
+}> = ({ stream, muted = false, sizePx, ring, fallbackInitial, showFeed, mirror = false }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (videoRef.current && stream) videoRef.current.srcObject = stream;
   }, [stream]);
 
   return (
-    <div className={`relative ${size} rounded-full overflow-hidden ${ring}
-      bg-[#101214] shadow-[0_8px_28px_rgba(0,0,0,0.65)]`}>
+    <div
+      style={{ width: sizePx, height: sizePx }}
+      className={`relative rounded-full overflow-hidden ${ring}
+      bg-[#101214] shadow-[0_8px_28px_rgba(0,0,0,0.65)] transition-[width,height] duration-200`}>
       {showFeed && stream ? (
         <video
           ref={videoRef}
@@ -52,8 +54,12 @@ const Bubble: React.FC<{
 
 const MARGIN = 16;
 const TOP_OFFSET = 52;     // keep clear of the session top bar
-const CLUSTER_W = 168;
-const CLUSTER_H = 132;
+const NAMEPLATE_H = 26;
+// Base (scale = 1) geometry — everything scales together
+const BASE = { w: 168, videoH: 106, partner: 104, local: 68, localLeft: 84, localTop: 58 };
+const MIN_SCALE = 0.7;
+const MAX_SCALE = 2.2;
+const SCALE_STEP = 0.2;
 
 const FloatingVideo: React.FC<FloatingVideoProps> = ({
   localStream, remoteStream, isVideoOn, isAudioOn, isConnected, partnerName,
@@ -61,20 +67,34 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
   const displayName = partnerName || 'Partner';
   const initial = displayName.charAt(0).toUpperCase();
 
+  // Hover zoom (+ / −) scales the whole cluster
+  const [scale, setScale] = useState(1);
+  const dims = {
+    w: BASE.w * scale,
+    h: BASE.videoH * scale + NAMEPLATE_H,
+    partner: BASE.partner * scale,
+    local: BASE.local * scale,
+    localLeft: BASE.localLeft * scale,
+    localTop: BASE.localTop * scale,
+  };
+  const dimsRef = useRef(dims);
+  dimsRef.current = dims;
+
   // Position is the cluster's top-left corner; start bottom-right.
   const [pos, setPos] = useState(() => ({
-    x: window.innerWidth - CLUSTER_W - MARGIN,
-    y: window.innerHeight - CLUSTER_H - MARGIN,
+    x: window.innerWidth - BASE.w - MARGIN,
+    y: window.innerHeight - (BASE.videoH + NAMEPLATE_H) - MARGIN,
   }));
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
   const snapToCorner = useCallback((x: number, y: number) => {
-    const midX = x + CLUSTER_W / 2 < window.innerWidth / 2;
-    const midY = y + CLUSTER_H / 2 < window.innerHeight / 2;
+    const { w, h } = dimsRef.current;
+    const midX = x + w / 2 < window.innerWidth / 2;
+    const midY = y + h / 2 < window.innerHeight / 2;
     return {
-      x: midX ? MARGIN : window.innerWidth - CLUSTER_W - MARGIN,
-      y: midY ? TOP_OFFSET : window.innerHeight - CLUSTER_H - MARGIN,
+      x: midX ? MARGIN : window.innerWidth - w - MARGIN,
+      y: midY ? TOP_OFFSET : window.innerHeight - h - MARGIN,
     };
   }, []);
 
@@ -87,8 +107,8 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
   const onPointerMove = (e: React.PointerEvent) => {
     if (!dragging) return;
     setPos({
-      x: Math.min(Math.max(e.clientX - dragOffset.current.x, 0), window.innerWidth - CLUSTER_W),
-      y: Math.min(Math.max(e.clientY - dragOffset.current.y, 0), window.innerHeight - CLUSTER_H),
+      x: Math.min(Math.max(e.clientX - dragOffset.current.x, 0), window.innerWidth - dims.w),
+      y: Math.min(Math.max(e.clientY - dragOffset.current.y, 0), window.innerHeight - dims.h),
     });
   };
 
@@ -98,7 +118,15 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
     setPos(p => snapToCorner(p.x, p.y));
   };
 
-  // Keep bubbles on-screen when the window resizes
+  const zoom = (delta: number) => {
+    setScale(s => Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.round((s + delta) * 100) / 100)));
+  };
+
+  // Re-anchor to the corner whenever size changes or the window resizes
+  useEffect(() => {
+    setPos(p => snapToCorner(p.x, p.y));
+  }, [scale, snapToCorner]);
+
   useEffect(() => {
     const onResize = () => setPos(p => snapToCorner(p.x, p.y));
     window.addEventListener('resize', onResize);
@@ -107,22 +135,47 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
 
   return (
     <div
-      className={`fixed z-40 select-none touch-none ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      className={`group fixed z-40 select-none touch-none ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
       style={{
         left: pos.x,
         top: pos.y,
-        width: CLUSTER_W,
+        width: dims.w,
         transition: dragging ? 'none' : 'left 280ms cubic-bezier(0.22,1,0.36,1), top 280ms cubic-bezier(0.22,1,0.36,1)',
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
-      <div className="relative" style={{ height: CLUSTER_H - 26 }}>
+      {/* Hover zoom controls */}
+      <div
+        className="absolute -top-2 -right-2 z-10 flex flex-col rounded-full bg-[#16181a] border border-white/[0.12] shadow-lg overflow-hidden
+          opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => zoom(SCALE_STEP)}
+          disabled={scale >= MAX_SCALE}
+          className="w-6 h-6 flex items-center justify-center text-[#cfd3d6] hover:bg-white/[0.1] disabled:opacity-30 transition-colors"
+          aria-label="Increase video size"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+        <div className="h-px bg-white/[0.08]" />
+        <button
+          onClick={() => zoom(-SCALE_STEP)}
+          disabled={scale <= MIN_SCALE}
+          className="w-6 h-6 flex items-center justify-center text-[#cfd3d6] hover:bg-white/[0.1] disabled:opacity-30 transition-colors"
+          aria-label="Decrease video size"
+        >
+          <Minus className="w-3 h-3" />
+        </button>
+      </div>
+
+      <div className="relative" style={{ height: BASE.videoH * scale }}>
         {/* Partner bubble — the big one */}
         <Bubble
           stream={remoteStream}
-          size="w-[104px] h-[104px]"
+          sizePx={dims.partner}
           ring={isConnected
             ? 'ring-2 ring-[#4ec9b0]/70'
             : 'ring-1 ring-white/[0.14]'}
@@ -131,16 +184,19 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
         />
         {/* waiting pulse when partner not connected */}
         {!isConnected && (
-          <span className="absolute left-0 top-0 w-[104px] h-[104px] rounded-full border border-white/[0.1] animate-ping pointer-events-none" />
+          <span
+            style={{ width: dims.partner, height: dims.partner }}
+            className="absolute left-0 top-0 rounded-full border border-white/[0.1] animate-ping pointer-events-none"
+          />
         )}
 
         {/* Your bubble — smaller, overlapping bottom-right */}
-        <div className="absolute left-[84px] top-[58px]">
+        <div className="absolute" style={{ left: dims.localLeft, top: dims.localTop }}>
           <Bubble
             stream={localStream}
             muted
             mirror
-            size="w-[68px] h-[68px]"
+            sizePx={dims.local}
             ring="ring-2 ring-[#0a0a0a]"
             fallbackInitial="Y"
             showFeed={isVideoOn && !!localStream}
