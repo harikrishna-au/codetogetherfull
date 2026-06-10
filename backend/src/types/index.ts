@@ -174,7 +174,7 @@ export interface ClientToServerEvents {
   fetchChatHistory: (data: { roomId: string }, callback?: (response: any) => void) => void;
   getRoomQuestion: (data: { roomId: string }, callback?: (response: any) => void) => void;
   submissionResult: (data: { roomId: string; userId?: string; passed: number; total: number }) => void;
-  submissionWin: (data: { roomId: string; passed: number; total: number; runtime: number; language: string }) => void;
+  // NOTE: `submissionWin` was removed (A3) — wins are decided server-side from /api/execute.
   syncCode: (data: { roomId: string; code: string }) => void;
   // Yjs collaborative editing
   'yjs:sync-request': (data: { roomId: string }) => void;
@@ -196,7 +196,7 @@ export interface ServerToClientEvents {
   'room-exit': (data: { roomId: string; leaver: string; reason: string }) => void;
   userJoined: (data: { userId: string; timestamp: number }) => void;
   submissionResult: (data: { userId: string; passed: number; total: number; timestamp: number }) => void;
-  roundWinner: (data: { winnerId: string; passed: number; total: number; runtime: number; language: string; timestamp: number }) => void;
+  roundWinner: (data: { winnerId: string; passed: number; total: number; runtime: number; language: string; reason?: 'submission' | 'forfeit' | 'timer'; timestamp: number }) => void;
   codeSynced: (data: { initiatorId: string; code: string }) => void;
   // Yjs collaborative editing
   'yjs:sync-response': (data: { state: string }) => void;

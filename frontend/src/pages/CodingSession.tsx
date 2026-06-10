@@ -114,10 +114,8 @@ const CodingSession = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [executeResult, setExecuteResult] = useState<ExecuteResult | null>(null);
 
-  // Win overlay
+  // Win overlay (populated by the server-authoritative `roundWinner` event)
   const [winData, setWinData] = useState<WinData | null>(null);
-  // Prevent emitting submissionWin more than once per session
-  const hasEmittedWin = useRef(false);
 
   // Refs to avoid stale closures in socket callbacks
   const executeResultRef = useRef<ExecuteResult | null>(null);
@@ -336,17 +334,8 @@ const CodingSession = () => {
       if (result.compilationError) {
         toast.error('Compilation error');
       } else if (result.passed === result.totalTests) {
-        // Full submit + all tests pass = emit win
-        if (execMode === 'submit' && socket && roomId && !hasEmittedWin.current) {
-          hasEmittedWin.current = true;
-          socket.emit('submissionWin', {
-            roomId,
-            passed: result.passed,
-            total: result.totalTests,
-            runtime: result.overallRuntime,
-            language: selectedLanguage,
-          });
-        }
+        // Win is now decided server-side (A3): when a full submit passes all tests, the
+        // backend ends the room and broadcasts `roundWinner`. We just surface progress here.
         toast.success(`${execMode === 'run' ? 'Run' : 'Submit'}: ${result.passed}/${result.totalTests} passed!`);
       } else {
         toast.error(`${result.passed}/${result.totalTests} test cases passed`);

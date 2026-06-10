@@ -3,6 +3,8 @@ import { AppError, ValidationError, asyncHandler } from '../utils/errors.js';
 import { supabase } from '../config/supabase.js';
 import { CodeRunner } from '../services/codeRunner.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { getSocketService } from '../server.js';
+import { logger } from '../utils/logger.js';
 
 const router = express.Router();
 const codeRunner = new CodeRunner();
@@ -74,13 +76,51 @@ router.post('/', authenticateToken, asyncHandler(async (req: any, res: any) => {
         })),
     });
 
+    const isFullSubmit = !visibleOnly && !!userId;
+    const passedAll = results.passed === results.totalTests && results.totalTests > 0;
+
     // Track completion when user passes ALL tests on a full submit (not visibleOnly run)
-    if (!visibleOnly && userId && results.passed === results.totalTests && results.totalTests > 0) {
+    if (isFullSubmit && passedAll) {
         // Insert into completed_questions (ignore conflict — user may have solved it before)
         await supabase.from('completed_questions').upsert(
             { user_id: userId, question_id: questionId, completed_at: new Date().toISOString() },
             { onConflict: 'user_id,question_id', ignoreDuplicates: true }
         );
+    }
+
+    // ── Server-authoritative win condition (A3) ──────────────────────────────────
+    // Persist every full submission, and if it passed all tests in an active room,
+    // the SERVER decides the win (clients can no longer fake a `submissionWin` event).
+    let didWin = false;
+    if (isFullSubmit && roomId) {
+        if (passedAll) {
+            // Verified win: end the room server-side. endRoomWithWin guards double-wins
+            // via a conditional update (only ends a room that is still `active`).
+            didWin = await getSocketService()?.endRoomWithWin({
+                roomId,
+                winnerId: userId,
+                passed: results.passed,
+                total: results.totalTests,
+                runtime: results.overallRuntime,
+                language,
+            }) ?? false;
+        }
+
+        // Store the submission for history, anti-cheat, and dispute resolution.
+        const { error: subErr } = await supabase.from('submissions').insert({
+            room_id: roomId,
+            user_id: userId,
+            question_id: questionId,
+            language,
+            code,
+            passed: results.passed,
+            total: results.totalTests,
+            is_winner: didWin,
+            runtime_ms: results.overallRuntime,
+        });
+        if (subErr) {
+            logger.error('Failed to persist submission', { roomId, userId, error: subErr });
+        }
     }
 
     // Log to session_history if we have a roomId (for both run and submit)

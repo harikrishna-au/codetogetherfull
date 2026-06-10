@@ -195,53 +195,10 @@ export class SocketService {
       });
     });
 
-    // First successful submission wins the round
-    socket.on('submissionWin', async (data: { roomId: string; passed: number; total: number; runtime: number; language: string }) => {
-      const userId = socket.user?.userId || 'unknown';
-      logger.info('Submission win', { userId, roomId: data.roomId, passed: data.passed, total: data.total });
-
-      // Mark the room as ended
-      const { error: roomEndError } = await supabase
-        .from('rooms')
-        .update({ status: 'ended', ended_at: new Date().toISOString() })
-        .eq('room_id', data.roomId);
-
-      if (roomEndError) {
-        logger.warn('Failed to end room on submission win', { roomId: data.roomId, error: roomEndError });
-      }
-
-      // Reset both participants' user states to idle
-      const { data: room } = await supabase
-        .from('rooms')
-        .select('participant1_id, participant2_id')
-        .eq('room_id', data.roomId)
-        .single();
-
-      if (room) {
-        const participants = [room.participant1_id, room.participant2_id].filter(Boolean);
-        await supabase.from('user_states').update({
-          state: 'idle',
-          room_id: null,
-          last_active: new Date().toISOString(),
-        }).in('user_id', participants);
-      }
-
-      // Stop the room timer since the match is over
-      this.timerService.stopRoomTimer(data.roomId);
-
-      // Clean up Yjs doc for the room
-      this.cleanupYjsRoom(data.roomId);
-
-      // Broadcast to everyone in the room (including sender) so all clients know who won
-      this.io.to(data.roomId).emit('roundWinner', {
-        winnerId: userId,
-        passed: data.passed,
-        total: data.total,
-        runtime: data.runtime,
-        language: data.language,
-        timestamp: Date.now(),
-      });
-    });
+    // NOTE: The client-trusted `submissionWin` event was removed (A3). Wins are now
+    // decided server-side in routes/execute.ts -> endRoomWithWin(), which verifies the
+    // submission actually passed all tests against the DB test cases. The server still
+    // broadcasts `roundWinner`; clients only listen for it.
 
     // Sync code: one user shares their code to activate collaborative editing
     socket.on('syncCode', (data: { roomId: string; code: string }) => {
@@ -337,6 +294,74 @@ export class SocketService {
       logger.debug('Created Yjs doc for room', { roomId });
     }
     return this.yjsRooms.get(roomId)!;
+  }
+
+  /**
+   * Server-authoritative room end + winner broadcast (A3 / A4).
+   *
+   * Ends the room ONLY if it is still `active` (conditional update guards against
+   * double-wins: two near-simultaneous winning submissions, or submit + forfeit).
+   * Returns true if THIS call actually ended the room, false if it was already over.
+   */
+  public async endRoomWithWin(params: {
+    roomId: string;
+    winnerId: string;
+    passed: number;
+    total: number;
+    runtime: number;
+    language: string;
+    reason?: 'submission' | 'forfeit' | 'timer';
+  }): Promise<boolean> {
+    const { roomId, winnerId, passed, total, runtime, language } = params;
+    const reason = params.reason ?? 'submission';
+
+    // Conditional end: only transition active -> ended, and only one caller wins the race.
+    const { data: endedRooms, error: endErr } = await supabase
+      .from('rooms')
+      .update({ status: 'ended', ended_at: new Date().toISOString(), end_reason: reason })
+      .eq('room_id', roomId)
+      .eq('status', 'active')
+      .select('participant1_id, participant2_id');
+
+    if (endErr) {
+      logger.error('Failed to end room', { roomId, error: endErr });
+      return false;
+    }
+
+    // No rows updated => room was already ended by another path. Do not broadcast again.
+    if (!endedRooms || endedRooms.length === 0) {
+      logger.info('Room already ended, skipping duplicate win', { roomId, winnerId });
+      return false;
+    }
+
+    const room = endedRooms[0];
+    const participants = [room.participant1_id, room.participant2_id].filter(Boolean);
+    if (participants.length > 0) {
+      await supabase.from('user_states').update({
+        state: 'idle',
+        room_id: null,
+        last_active: new Date().toISOString(),
+      }).in('user_id', participants);
+    }
+
+    // Stop the room timer and free the collaborative doc.
+    this.timerService.stopRoomTimer(roomId);
+    this.cleanupYjsRoom(roomId);
+
+    logger.info('Room ended with winner', { roomId, winnerId, reason, passed, total });
+
+    // Broadcast to everyone in the room so all clients show the result.
+    this.io.to(roomId).emit('roundWinner', {
+      winnerId,
+      passed,
+      total,
+      runtime,
+      language,
+      reason,
+      timestamp: Date.now(),
+    });
+
+    return true;
   }
 
   /** Call when a room ends to free the Y.Doc from memory */
