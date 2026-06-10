@@ -20,4 +20,5 @@ export const API_ENDPOINTS = {
   USER_STATS: `${API_BASE_URL}/users/stats`,
   USER_HISTORY: `${API_BASE_URL}/users/history`,
   USERS_BASE: `${API_BASE_URL}/users`,
+  LEADERBOARD: `${API_BASE_URL}/leaderboard`,
 };

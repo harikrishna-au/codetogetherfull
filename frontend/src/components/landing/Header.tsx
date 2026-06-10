@@ -86,6 +86,14 @@ const Header = () => {
 
             <SignedIn>
               <div className="flex items-center gap-3">
+                <Link to="/leaderboard">
+                  <Button variant="ghost" className={`
+                    rounded-full text-[#cfd3d6] hover:text-white hover:bg-white/[0.08] transition-all duration-300
+                    ${scrolled ? 'text-xs px-3 py-1 h-7' : 'text-sm px-4 py-1.5 h-8'}
+                  `}>
+                    Leaderboard
+                  </Button>
+                </Link>
                 <Link to="/profile">
                   <Button variant="ghost" className={`
                     rounded-full text-[#cfd3d6] hover:text-white hover:bg-white/[0.08] transition-all duration-300

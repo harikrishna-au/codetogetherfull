@@ -21,6 +21,7 @@ import testCasesRouter from '@/routes/testcases.js';
 import queueRouter from '@/routes/queue.js';
 import roomsRouter from '@/routes/rooms.js';
 import executeRouter from '@/routes/execute.js';
+import leaderboardRouter from '@/routes/leaderboard.js';
 
 // Import services
 import { SocketService } from '@/services/SocketService.js';
@@ -78,6 +79,7 @@ app.use('/api/testcases', testCasesRouter);
 app.use('/api/queue', queueRouter);
 app.use('/api/rooms', roomsRouter);
 app.use('/api/execute', executeRouter);
+app.use('/api/leaderboard', leaderboardRouter);
 
 // Basic API routes
 app.get('/api/status', (_req, res) => {

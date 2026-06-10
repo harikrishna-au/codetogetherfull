@@ -11,6 +11,7 @@ import { MatchmakingProvider } from "@/context/MatchmakingContext";
 import CodingSession from "./pages/CodingSession";
 import SessionResults from "./pages/SessionResults";
 import ProfilePage from "./pages/ProfilePage";
+import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 import React from "react";
 import { getOrCreateSessionId } from "@/lib/session";
@@ -52,6 +53,7 @@ const App = () => (
                     <Route path="/session/:roomId" element={<CodingSession />} />
                     <Route path="/session/:roomId/results" element={<SessionResults />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/leaderboard" element={<Leaderboard />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

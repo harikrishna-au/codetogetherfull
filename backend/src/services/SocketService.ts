@@ -415,7 +415,7 @@ export class SocketService {
     try {
       const { data: players, error } = await supabase
         .from('users')
-        .select('user_id, rating, rated_games_played, peak_rating')
+        .select('user_id, rating, rated_games_played, peak_rating, rated_wins, rated_losses, current_streak')
         .in('user_id', [winnerId, loserId]);
 
       if (error || !players || players.length !== 2) {
@@ -431,16 +431,23 @@ export class SocketService {
         { rating: loserRow.rating ?? DEFAULT_RATING, gamesPlayed: loserRow.rated_games_played ?? 0 },
       );
 
+      const now = new Date().toISOString();
       await Promise.all([
         supabase.from('users').update({
           rating: result.winner.newRating,
           rated_games_played: (winnerRow.rated_games_played ?? 0) + 1,
           peak_rating: Math.max(winnerRow.peak_rating ?? DEFAULT_RATING, result.winner.newRating),
+          rated_wins: (winnerRow.rated_wins ?? 0) + 1,
+          current_streak: (winnerRow.current_streak ?? 0) + 1,
+          last_rated_at: now,
         }).eq('user_id', winnerId),
         supabase.from('users').update({
           rating: result.loser.newRating,
           rated_games_played: (loserRow.rated_games_played ?? 0) + 1,
           peak_rating: Math.max(loserRow.peak_rating ?? DEFAULT_RATING, result.loser.newRating),
+          rated_losses: (loserRow.rated_losses ?? 0) + 1,
+          current_streak: 0,
+          last_rated_at: now,
         }).eq('user_id', loserId),
       ]);
 
