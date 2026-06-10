@@ -92,11 +92,20 @@ export class CodeRunner {
                     break;
             }
 
-            // Redact hidden test case data
+            // Redact hidden test case data (A5). Beyond input/expected, also strip
+            // `actual` (oracle for probing hidden inputs) and raw `error` strings
+            // (assertion/exception text can embed expected output) — hidden cases
+            // only ever report pass/fail.
             result.results = result.results.map(r => {
                 if (r.isHidden) {
-                    const { input: _i, expected: _e, ...rest } = r as any;
-                    return rest;
+                    return {
+                        testCaseId: r.testCaseId,
+                        passed: r.passed,
+                        actual: null,
+                        error: r.passed ? null : 'Hidden test failed',
+                        runtime: r.runtime,
+                        isHidden: true,
+                    };
                 }
                 return r;
             });
