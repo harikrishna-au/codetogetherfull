@@ -15,6 +15,21 @@ repository history even after removal:
 `.env` files are now git-ignored. Copy `backend/.env.example` to `backend/.env` and
 fill in the rotated values. Never commit `.env`.
 
+## Code execution sandbox
+
+User-submitted code runs in **Docker-isolated containers** (`EXECUTION_MODE=docker`,
+the default): one official image per runtime, no network, 256 MB memory, 0.5 CPU,
+64-process limit, read-only code mount, non-root user, 10 s hard timeout.
+Pre-pull the images on the host:
+
+```bash
+docker pull node:20-alpine python:3.12-alpine eclipse-temurin:21-jdk-alpine gcc:13
+```
+
+For development machines without Docker set `EXECUTION_MODE=local` in
+`backend/.env` — this executes submissions directly on the host and is **unsafe
+for anything public**.
+
 ## Setup
 
 ```bash

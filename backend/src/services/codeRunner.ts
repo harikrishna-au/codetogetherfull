@@ -4,8 +4,10 @@ import { writeFile, mkdir, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
+import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/errors.js';
+import { SandboxRunner, SANDBOX_RUN_TIMEOUT_MS } from './sandboxRunner.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -56,6 +58,13 @@ export class CodeRunner {
     private static readonly TOTAL_TIMEOUT = 30_000;
     private static readonly COMPILE_TIMEOUT = 15_000;
     private static readonly MAX_BUFFER = 256 * 1024 * 1024;
+
+    /** Docker-isolated backend (A2). `EXECUTION_MODE=local` bypasses it for dev. */
+    private readonly sandbox = new SandboxRunner();
+
+    private useDocker(): boolean {
+        return env.EXECUTION_MODE === 'docker';
+    }
 
     async execute(input: ExecuteInput): Promise<ExecuteResult> {
         const { code, language, starterCode, testCases } = input;
@@ -238,11 +247,20 @@ process.stdout.write(JSON.stringify(__results));
         const stdinData = JSON.stringify(testCases.map(tc => ({ input: tc.input })));
 
         try {
-            const { stdout } = await this.runWithStdin('node', ['--max-old-space-size=256', filePath], stdinData, {
-                timeout: CodeRunner.TOTAL_TIMEOUT,
-                maxBuffer: CodeRunner.MAX_BUFFER,
-                cwd: tmpDir,
-            });
+            const { stdout } = this.useDocker()
+                ? await this.sandbox.run({
+                    language: 'javascript',
+                    command: ['node', '--max-old-space-size=256', '/workspace/solution.js'],
+                    tmpDir,
+                    stdinData,
+                    timeoutMs: SANDBOX_RUN_TIMEOUT_MS,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                })
+                : await this.runWithStdin('node', ['--max-old-space-size=256', filePath], stdinData, {
+                    timeout: CodeRunner.TOTAL_TIMEOUT,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                    cwd: tmpDir,
+                });
             return this.buildResult(stdout, testCases, tmpDir);
         } catch (err: any) {
             return this.buildErrorResult(err, testCases, tmpDir);
@@ -285,11 +303,20 @@ sys.stdout.write(json.dumps(__results))
         const stdinData = JSON.stringify(testCases.map(tc => ({ input: tc.input })));
 
         try {
-            const { stdout } = await this.runWithStdin('python3', [filePath], stdinData, {
-                timeout: CodeRunner.TOTAL_TIMEOUT,
-                maxBuffer: CodeRunner.MAX_BUFFER,
-                cwd: tmpDir,
-            });
+            const { stdout } = this.useDocker()
+                ? await this.sandbox.run({
+                    language: 'python',
+                    command: ['python3', '/workspace/solution.py'],
+                    tmpDir,
+                    stdinData,
+                    timeoutMs: SANDBOX_RUN_TIMEOUT_MS,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                })
+                : await this.runWithStdin('python3', [filePath], stdinData, {
+                    timeout: CodeRunner.TOTAL_TIMEOUT,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                    cwd: tmpDir,
+                });
             return this.buildResult(stdout, testCases, tmpDir);
         } catch (err: any) {
             return this.buildErrorResult(err, testCases, tmpDir);
@@ -308,11 +335,22 @@ sys.stdout.write(json.dumps(__results))
 
         // Compile
         try {
-            await execFileAsync('javac', [filePath], {
-                timeout: CodeRunner.COMPILE_TIMEOUT,
-                maxBuffer: CodeRunner.MAX_BUFFER,
-                cwd: tmpDir,
-            });
+            if (this.useDocker()) {
+                await this.sandbox.run({
+                    language: 'java',
+                    command: ['javac', '/workspace/Main.java'],
+                    tmpDir,
+                    timeoutMs: CodeRunner.COMPILE_TIMEOUT,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                    writableWorkspace: true, // .class files must land back on the host
+                });
+            } else {
+                await execFileAsync('javac', [filePath], {
+                    timeout: CodeRunner.COMPILE_TIMEOUT,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                    cwd: tmpDir,
+                });
+            }
         } catch (err: any) {
             const msg = this.sanitizeError(err.stderr || err.message, tmpDir);
             return {
@@ -331,12 +369,20 @@ sys.stdout.write(json.dumps(__results))
 
         // Execute
         try {
-            const { stdout } = await execFileAsync('java', ['-cp', tmpDir, '-Xmx256m', 'Main'], {
-                timeout: CodeRunner.TOTAL_TIMEOUT,
-                maxBuffer: CodeRunner.MAX_BUFFER,
-                cwd: tmpDir,
-                env: { PATH: process.env.PATH },
-            });
+            const { stdout } = this.useDocker()
+                ? await this.sandbox.run({
+                    language: 'java',
+                    command: ['java', '-cp', '/workspace', '-Xmx256m', 'Main'],
+                    tmpDir,
+                    timeoutMs: SANDBOX_RUN_TIMEOUT_MS,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                })
+                : await execFileAsync('java', ['-cp', tmpDir, '-Xmx256m', 'Main'], {
+                    timeout: CodeRunner.TOTAL_TIMEOUT,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                    cwd: tmpDir,
+                    env: { PATH: process.env.PATH },
+                });
             return this.buildResult(stdout, testCases, tmpDir);
         } catch (err: any) {
             return this.buildErrorResult(err, testCases, tmpDir);
@@ -511,11 +557,22 @@ ${testBlocks}
 
         // Compile
         try {
-            await execFileAsync('g++', ['-std=c++17', '-O2', '-o', binPath, srcPath], {
-                timeout: CodeRunner.COMPILE_TIMEOUT,
-                maxBuffer: CodeRunner.MAX_BUFFER,
-                cwd: tmpDir,
-            });
+            if (this.useDocker()) {
+                await this.sandbox.run({
+                    language: 'cpp',
+                    command: ['g++', '-std=c++17', '-O2', '-o', '/workspace/solution', '/workspace/solution.cpp'],
+                    tmpDir,
+                    timeoutMs: CodeRunner.COMPILE_TIMEOUT,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                    writableWorkspace: true, // binary must land back on the host
+                });
+            } else {
+                await execFileAsync('g++', ['-std=c++17', '-O2', '-o', binPath, srcPath], {
+                    timeout: CodeRunner.COMPILE_TIMEOUT,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                    cwd: tmpDir,
+                });
+            }
         } catch (err: any) {
             const msg = this.sanitizeError(err.stderr || err.message, tmpDir);
             return {
@@ -534,12 +591,20 @@ ${testBlocks}
 
         // Execute
         try {
-            const { stdout } = await execFileAsync(binPath, [], {
-                timeout: CodeRunner.TOTAL_TIMEOUT,
-                maxBuffer: CodeRunner.MAX_BUFFER,
-                cwd: tmpDir,
-                env: { PATH: process.env.PATH },
-            });
+            const { stdout } = this.useDocker()
+                ? await this.sandbox.run({
+                    language: 'cpp',
+                    command: ['/workspace/solution'],
+                    tmpDir,
+                    timeoutMs: SANDBOX_RUN_TIMEOUT_MS,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                })
+                : await execFileAsync(binPath, [], {
+                    timeout: CodeRunner.TOTAL_TIMEOUT,
+                    maxBuffer: CodeRunner.MAX_BUFFER,
+                    cwd: tmpDir,
+                    env: { PATH: process.env.PATH },
+                });
             return this.buildResult(stdout, testCases, tmpDir);
         } catch (err: any) {
             return this.buildErrorResult(err, testCases, tmpDir);

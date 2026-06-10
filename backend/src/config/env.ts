@@ -40,6 +40,11 @@ const envSchema = z.object({
   // Grace period before a disconnected player forfeits an active match (A4)
   FORFEIT_GRACE_SECONDS: z.string().default('60').transform(Number),
 
+  // Code execution isolation (A2): 'docker' runs submissions in locked-down
+  // containers (the security boundary); 'local' spawns directly on the host
+  // and must ONLY be used for development machines without Docker.
+  EXECUTION_MODE: z.enum(['docker', 'local']).default('docker'),
+
   // Logging
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   LOG_FILE: z.string().default('logs/app.log'),
