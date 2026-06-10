@@ -22,6 +22,13 @@ import { Link } from 'react-router-dom';
 
 // ─── Win overlay ─────────────────────────────────────────────────────────────
 
+interface RatingChangeInfo {
+  userId: string;
+  oldRating: number;
+  newRating: number;
+  delta: number;
+}
+
 interface WinData {
   winnerId: string;
   passed: number;
@@ -29,6 +36,8 @@ interface WinData {
   runtime: number;
   language: string;
   reason?: 'submission' | 'forfeit' | 'timer';
+  /** Present only for rated (challenge) matches */
+  ratings?: { winner: RatingChangeInfo; loser: RatingChangeInfo };
 }
 
 const WinOverlay = ({
@@ -67,6 +76,21 @@ const WinOverlay = ({
             {data.passed}/{data.total} tests · {data.runtime.toFixed(1)} ms · {data.language}
           </p>
         )}
+        {data.ratings && (() => {
+          const myChange = iWon ? data.ratings.winner : data.ratings.loser;
+          const positive = myChange.delta >= 0;
+          return (
+            <div className="mt-4 animate-fade-in">
+              <span className={`inline-block text-2xl font-bold tabular-nums animate-bounce
+                ${positive ? 'text-green-400' : 'text-red-400'}`}>
+                {positive ? '+' : ''}{myChange.delta}
+              </span>
+              <p className="text-gray-400 text-xs mt-1">
+                Rating: {myChange.oldRating} → {myChange.newRating}
+              </p>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
@@ -237,9 +261,12 @@ const CodingSession = () => {
         }
       }
 
-      // Auto-dismiss after 6 seconds and go to results
+      // Auto-dismiss after 6 seconds and go to results (rating change rides along)
       setTimeout(() => {
-        navigate(`/session/${roomId}/results`, { replace: true });
+        navigate(`/session/${roomId}/results`, {
+          replace: true,
+          state: { ratings: data.ratings, winnerId: data.winnerId },
+        });
       }, 6000);
     };
     socket.on('roundWinner', handleRoundWinner);

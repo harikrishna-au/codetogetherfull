@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { supabase } from '../config/supabase.js';
 import { asyncHandler } from '../utils/errors.js';
+import { DEFAULT_RATING, tierForRating } from '../services/EloService.js';
 
 const router = express.Router();
 
@@ -62,6 +63,15 @@ router.post('/inactive', asyncHandler(async (req: any, res: any) => {
 // Get user statistics
 router.get('/stats/:userId', asyncHandler(async (req: Request, res: Response) => {
     const { userId } = req.params;
+
+    // Elo rating + tier (B1)
+    const { data: userRow } = await supabase
+        .from('users')
+        .select('rating, rated_games_played, peak_rating')
+        .eq('user_id', userId)
+        .single();
+
+    const rating = userRow?.rating ?? DEFAULT_RATING;
 
     // Total sessions
     const { count: totalSessions } = await supabase
@@ -202,7 +212,11 @@ router.get('/stats/:userId', asyncHandler(async (req: Request, res: Response) =>
             winLossRecord: { wins, losses },
             currentStreak,
             favoriteLanguage,
-            totalCodingTime
+            totalCodingTime,
+            rating,
+            peakRating: userRow?.peak_rating ?? DEFAULT_RATING,
+            ratedGamesPlayed: userRow?.rated_games_played ?? 0,
+            tier: tierForRating(rating),
         }
     });
 }));

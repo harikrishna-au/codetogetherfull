@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { API_ENDPOINTS } from '@/lib/api';
 import {
@@ -49,10 +49,25 @@ const difficultyStyles: Record<string, string> = {
     hard: 'bg-red-500/10 text-red-400 border border-red-500/20',
 };
 
+interface RatingChangeInfo {
+    userId: string;
+    oldRating: number;
+    newRating: number;
+    delta: number;
+}
+
 const SessionResults = () => {
     const { roomId } = useParams<{ roomId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useContext(AuthContext);
+    // Rating change handed over from the live session (rated challenge matches only)
+    const ratings: { winner: RatingChangeInfo; loser: RatingChangeInfo } | undefined =
+        location.state?.ratings;
+    const myRatingChange = ratings
+        ? (ratings.winner.userId === user?.id ? ratings.winner
+            : ratings.loser.userId === user?.id ? ratings.loser : undefined)
+        : undefined;
     const [results, setResults] = useState<SessionResultsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [showCodeModal, setShowCodeModal] = useState(false);
@@ -168,6 +183,18 @@ const SessionResults = () => {
                         <h1 className="text-4xl sm:text-5xl font-bold text-[#e2e5e8] tracking-tight">Session Complete!</h1>
                     )}
                     <p className="text-[#6b7075] text-sm">Great work on the coding challenge</p>
+
+                    {/* Elo rating change (B1) */}
+                    {myRatingChange && (
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
+                            <span className={`text-lg font-bold tabular-nums ${myRatingChange.delta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                {myRatingChange.delta >= 0 ? '+' : ''}{myRatingChange.delta}
+                            </span>
+                            <span className="text-[#8a9099] text-xs">
+                                {myRatingChange.oldRating} → {myRatingChange.newRating}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* ── Problem Info ── */}

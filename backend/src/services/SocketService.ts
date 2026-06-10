@@ -6,7 +6,8 @@ import { supabase } from '@/config/supabase.js';
 import { logger } from '@/utils/logger.js';
 import { TimerService } from './TimerService.js';
 import { MatchmakingService } from './MatchmakingService.js';
-import type { AuthenticatedSocket, ClientToServerEvents, ServerToClientEvents } from '@/types/index.js';
+import { applyMatch, DEFAULT_RATING } from './EloService.js';
+import type { AuthenticatedSocket, ClientToServerEvents, ServerToClientEvents, RoundWinnerRatings } from '@/types/index.js';
 
 export class SocketService {
   private io: Server<ClientToServerEvents, ServerToClientEvents>;
@@ -354,7 +355,7 @@ export class SocketService {
       .update({ status: 'ended', ended_at: new Date().toISOString(), end_reason: reason })
       .eq('room_id', roomId)
       .eq('status', 'active')
-      .select('participant1_id, participant2_id');
+      .select('participant1_id, participant2_id, mode');
 
     if (endErr) {
       logger.error('Failed to end room', { roomId, error: endErr });
@@ -381,7 +382,14 @@ export class SocketService {
     this.timerService.stopRoomTimer(roomId);
     this.cleanupYjsRoom(roomId);
 
-    logger.info('Room ended with winner', { roomId, winnerId, reason, passed, total });
+    // Elo rating update — challenge mode only (B1); friendly/private are unrated.
+    const loserId = room.participant1_id === winnerId ? room.participant2_id : room.participant1_id;
+    let ratings: RoundWinnerRatings | undefined;
+    if (room.mode === 'challenge' && loserId) {
+      ratings = await this.applyEloRatings(winnerId, loserId) ?? undefined;
+    }
+
+    logger.info('Room ended with winner', { roomId, winnerId, reason, passed, total, rated: !!ratings });
 
     // Broadcast to everyone in the room so all clients show the result.
     this.io.to(roomId).emit('roundWinner', {
@@ -391,10 +399,64 @@ export class SocketService {
       runtime,
       language,
       reason,
+      ratings,
       timestamp: Date.now(),
     });
 
     return true;
+  }
+
+  /**
+   * Apply Elo changes for a decided challenge match (B1). Runs inside the win
+   * path right after the conditional room end, so the double-win guard above
+   * also guarantees ratings are applied at most once per room.
+   */
+  private async applyEloRatings(winnerId: string, loserId: string): Promise<RoundWinnerRatings | null> {
+    try {
+      const { data: players, error } = await supabase
+        .from('users')
+        .select('user_id, rating, rated_games_played, peak_rating')
+        .in('user_id', [winnerId, loserId]);
+
+      if (error || !players || players.length !== 2) {
+        logger.error('Failed to load players for rating update', { winnerId, loserId, error });
+        return null;
+      }
+
+      const winnerRow = players.find(p => p.user_id === winnerId)!;
+      const loserRow = players.find(p => p.user_id === loserId)!;
+
+      const result = applyMatch(
+        { rating: winnerRow.rating ?? DEFAULT_RATING, gamesPlayed: winnerRow.rated_games_played ?? 0 },
+        { rating: loserRow.rating ?? DEFAULT_RATING, gamesPlayed: loserRow.rated_games_played ?? 0 },
+      );
+
+      await Promise.all([
+        supabase.from('users').update({
+          rating: result.winner.newRating,
+          rated_games_played: (winnerRow.rated_games_played ?? 0) + 1,
+          peak_rating: Math.max(winnerRow.peak_rating ?? DEFAULT_RATING, result.winner.newRating),
+        }).eq('user_id', winnerId),
+        supabase.from('users').update({
+          rating: result.loser.newRating,
+          rated_games_played: (loserRow.rated_games_played ?? 0) + 1,
+          peak_rating: Math.max(loserRow.peak_rating ?? DEFAULT_RATING, result.loser.newRating),
+        }).eq('user_id', loserId),
+      ]);
+
+      logger.info('Elo ratings applied', {
+        winner: { userId: winnerId, ...result.winner },
+        loser: { userId: loserId, ...result.loser },
+      });
+
+      return {
+        winner: { userId: winnerId, ...result.winner },
+        loser: { userId: loserId, ...result.loser },
+      };
+    } catch (error) {
+      logger.error('Failed to apply Elo ratings:', error);
+      return null;
+    }
   }
 
   // ── Forfeit handling (A4) ────────────────────────────────────────────────────

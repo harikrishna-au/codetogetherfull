@@ -163,6 +163,19 @@ export interface ErrorResponse {
   timestamp: string;
 }
 
+// Elo rating change attached to roundWinner for challenge matches (B1)
+export interface RatingChangeInfo {
+  userId: string;
+  oldRating: number;
+  newRating: number;
+  delta: number;
+}
+
+export interface RoundWinnerRatings {
+  winner: RatingChangeInfo;
+  loser: RatingChangeInfo;
+}
+
 // Socket event types
 export interface ClientToServerEvents {
   join: (data: { roomId: string }, callback?: (response: any) => void) => void;
@@ -196,7 +209,7 @@ export interface ServerToClientEvents {
   'room-exit': (data: { roomId: string; leaver: string; reason: string }) => void;
   userJoined: (data: { userId: string; timestamp: number }) => void;
   submissionResult: (data: { userId: string; passed: number; total: number; timestamp: number }) => void;
-  roundWinner: (data: { winnerId: string; passed: number; total: number; runtime: number; language: string; reason?: 'submission' | 'forfeit' | 'timer'; timestamp: number }) => void;
+  roundWinner: (data: { winnerId: string; passed: number; total: number; runtime: number; language: string; reason?: 'submission' | 'forfeit' | 'timer'; ratings?: RoundWinnerRatings; timestamp: number }) => void;
   // Forfeit grace flow (A4)
   opponentDisconnected: (data: { roomId: string; userId: string; graceMs: number; deadline: number }) => void;
   opponentReconnected: (data: { roomId: string; userId: string }) => void;

@@ -33,7 +33,19 @@ interface UserStats {
     currentStreak: number;
     favoriteLanguage: string;
     totalCodingTime: number;
+    rating: number;
+    peakRating: number;
+    ratedGamesPlayed: number;
+    tier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond';
 }
+
+const tierColors: Record<UserStats['tier'], string> = {
+    Bronze: 'text-amber-700',
+    Silver: 'text-slate-300',
+    Gold: 'text-yellow-400',
+    Platinum: 'text-cyan-300',
+    Diamond: 'text-violet-400',
+};
 
 const ProfilePage = () => {
     const { user } = useContext(AuthContext);
@@ -121,6 +133,24 @@ const ProfilePage = () => {
                         </p>
                         <p className="text-muted-foreground/70 text-xs mt-1">
                             Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Rating banner (B1) */}
+                <div className="flex items-center gap-4 px-5 py-4 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl animate-fade-in">
+                    <Trophy className={`w-8 h-8 ${stats ? tierColors[stats.tier] : 'text-muted-foreground'}`} />
+                    <div>
+                        <div className="flex items-baseline gap-3">
+                            <span className="text-3xl font-black text-foreground tabular-nums">
+                                {stats?.rating ?? 1200}
+                            </span>
+                            <span className={`text-sm font-semibold ${stats ? tierColors[stats.tier] : ''}`}>
+                                {stats?.tier ?? ''}
+                            </span>
+                        </div>
+                        <p className="text-muted-foreground text-xs mt-0.5">
+                            Peak {stats?.peakRating ?? 1200} · {stats?.ratedGamesPlayed ?? 0} rated games
                         </p>
                     </div>
                 </div>
