@@ -37,6 +37,8 @@ const envSchema = z.object({
   SESSION_TIMEOUT_MINUTES: z.string().default('60').transform(Number),
   ROOM_TIMEOUT_MINUTES: z.string().default('90').transform(Number),
   QUEUE_TIMEOUT_MINUTES: z.string().default('10').transform(Number),
+  // Grace period before a disconnected player forfeits an active match (A4)
+  FORFEIT_GRACE_SECONDS: z.string().default('60').transform(Number),
 
   // Logging
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),

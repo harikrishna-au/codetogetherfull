@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import * as Y from 'yjs';
 import { authenticateSocket } from '@/middleware/auth.js';
+import { env } from '@/config/env.js';
 import { supabase } from '@/config/supabase.js';
 import { logger } from '@/utils/logger.js';
 import { TimerService } from './TimerService.js';
@@ -13,6 +14,8 @@ export class SocketService {
   private socketUsers: Map<string, string> = new Map(); // socketId -> userId
   /** One Y.Doc per room — persists editor state for reconnecting users */
   private yjsRooms: Map<string, Y.Doc> = new Map();
+  /** Pending forfeit grace timers, keyed by `${roomId}:${userId}` (A4) */
+  private forfeitTimers: Map<string, NodeJS.Timeout> = new Map();
   private timerService: TimerService;
   private matchmakingService: MatchmakingService;
 
@@ -364,6 +367,116 @@ export class SocketService {
     return true;
   }
 
+  // ── Forfeit handling (A4) ────────────────────────────────────────────────────
+
+  /**
+   * Called when a user disconnects. If they were in an active room, start a grace
+   * timer; if they don't reconnect in time, the remaining player wins by forfeit.
+   */
+  private async scheduleForfeitCheck(userId: string): Promise<void> {
+    try {
+      const { data: rooms } = await supabase
+        .from('rooms')
+        .select('room_id, participant1_id, participant2_id')
+        .eq('status', 'active')
+        .or(`participant1_id.eq.${userId},participant2_id.eq.${userId}`);
+
+      if (!rooms || rooms.length === 0) return;
+
+      const graceMs = env.FORFEIT_GRACE_SECONDS * 1000;
+
+      for (const room of rooms) {
+        const roomId = room.room_id;
+        const opponentId = room.participant1_id === userId
+          ? room.participant2_id
+          : room.participant1_id;
+
+        const key = `${roomId}:${userId}`;
+        if (this.forfeitTimers.has(key)) continue; // already counting down
+
+        const timeout = setTimeout(() => {
+          this.forfeitTimers.delete(key);
+          void this.handleForfeit(roomId, userId, opponentId);
+        }, graceMs);
+        this.forfeitTimers.set(key, timeout);
+
+        // Tell the remaining player their opponent dropped + when forfeit triggers
+        this.io.to(roomId).emit('opponentDisconnected', {
+          roomId,
+          userId,
+          graceMs,
+          deadline: Date.now() + graceMs,
+        });
+
+        logger.info('Forfeit grace timer started', { roomId, userId, graceMs });
+      }
+    } catch (error) {
+      logger.error('Failed to schedule forfeit check:', error);
+    }
+  }
+
+  /** Cancel a pending forfeit countdown when the user rejoins their room. */
+  private cancelForfeitTimer(roomId: string, userId: string): void {
+    const key = `${roomId}:${userId}`;
+    const timeout = this.forfeitTimers.get(key);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.forfeitTimers.delete(key);
+      this.io.to(roomId).emit('opponentReconnected', { roomId, userId });
+      logger.info('Forfeit grace timer cancelled — user reconnected', { roomId, userId });
+    }
+  }
+
+  /** Grace period expired without a reconnect — award the win to the remaining player. */
+  private async handleForfeit(roomId: string, leaverId: string, opponentId: string | null): Promise<void> {
+    try {
+      // Reconnected at the last moment (join may have raced the timer) — no forfeit.
+      if (this.connectedUsers.has(leaverId)) return;
+
+      // Room may have already ended (submission win, timer, admin close).
+      const { data: room } = await supabase
+        .from('rooms')
+        .select('status')
+        .eq('room_id', roomId)
+        .single();
+      if (!room || room.status !== 'active') return;
+
+      if (opponentId && this.connectedUsers.has(opponentId)) {
+        // Remaining player wins by forfeit.
+        await this.endRoomWithWin({
+          roomId,
+          winnerId: opponentId,
+          passed: 0,
+          total: 0,
+          runtime: 0,
+          language: '',
+          reason: 'forfeit',
+        });
+        logger.info('Match forfeited', { roomId, leaverId, winnerId: opponentId });
+      } else {
+        // Both players gone — close the room with no winner and free resources.
+        await supabase
+          .from('rooms')
+          .update({ status: 'ended', ended_at: new Date().toISOString(), end_reason: 'abandoned' })
+          .eq('room_id', roomId)
+          .eq('status', 'active');
+
+        const participants = [leaverId, opponentId].filter(Boolean) as string[];
+        await supabase.from('user_states').update({
+          state: 'idle',
+          room_id: null,
+          last_active: new Date().toISOString(),
+        }).in('user_id', participants);
+
+        this.timerService.stopRoomTimer(roomId);
+        this.cleanupYjsRoom(roomId);
+        logger.info('Room abandoned — both players disconnected', { roomId });
+      }
+    } catch (error) {
+      logger.error('Failed to handle forfeit:', error);
+    }
+  }
+
   /** Call when a room ends to free the Y.Doc from memory */
   public cleanupYjsRoom(roomId: string): void {
     const doc = this.yjsRooms.get(roomId);
@@ -394,6 +507,9 @@ export class SocketService {
 
     // Join the socket room
     await socket.join(roomId);
+
+    // Reconnected in time — cancel any pending forfeit countdown (A4)
+    this.cancelForfeitTimer(roomId, userId);
 
     // Update user state
     await supabase.from('user_states').update({
@@ -635,6 +751,9 @@ export class SocketService {
       // Remove from connection mappings
       this.connectedUsers.delete(userId);
       this.socketUsers.delete(socket.id);
+
+      // If the user was mid-match, start the forfeit grace countdown (A4)
+      await this.scheduleForfeitCheck(userId);
 
       logger.info('User disconnected from socket', {
         userId,

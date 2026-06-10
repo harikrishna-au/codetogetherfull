@@ -197,6 +197,9 @@ export interface ServerToClientEvents {
   userJoined: (data: { userId: string; timestamp: number }) => void;
   submissionResult: (data: { userId: string; passed: number; total: number; timestamp: number }) => void;
   roundWinner: (data: { winnerId: string; passed: number; total: number; runtime: number; language: string; reason?: 'submission' | 'forfeit' | 'timer'; timestamp: number }) => void;
+  // Forfeit grace flow (A4)
+  opponentDisconnected: (data: { roomId: string; userId: string; graceMs: number; deadline: number }) => void;
+  opponentReconnected: (data: { roomId: string; userId: string }) => void;
   codeSynced: (data: { initiatorId: string; code: string }) => void;
   // Yjs collaborative editing
   'yjs:sync-response': (data: { state: string }) => void;

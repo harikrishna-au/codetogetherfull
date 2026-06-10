@@ -28,6 +28,7 @@ interface WinData {
   total: number;
   runtime: number;
   language: string;
+  reason?: 'submission' | 'forfeit' | 'timer';
 }
 
 const WinOverlay = ({
@@ -40,6 +41,7 @@ const WinOverlay = ({
   onClose: () => void;
 }) => {
   const iWon = data.winnerId === myId;
+  const isForfeit = data.reason === 'forfeit';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className={`relative rounded-2xl p-10 text-center shadow-2xl max-w-sm w-full
@@ -56,11 +58,15 @@ const WinOverlay = ({
           {iWon ? '🎉 You Won!' : '😔 You Lost'}
         </h2>
         <p className="text-gray-300 text-sm mb-1">
-          {iWon ? 'First to solve it!' : 'Your opponent solved it first.'}
+          {isForfeit
+            ? (iWon ? 'Your opponent disconnected — you win by forfeit!' : 'You forfeited the match by disconnecting.')
+            : (iWon ? 'First to solve it!' : 'Your opponent solved it first.')}
         </p>
-        <p className="text-gray-400 text-xs">
-          {data.passed}/{data.total} tests · {data.runtime.toFixed(1)} ms · {data.language}
-        </p>
+        {!isForfeit && (
+          <p className="text-gray-400 text-xs">
+            {data.passed}/{data.total} tests · {data.runtime.toFixed(1)} ms · {data.language}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -116,6 +122,19 @@ const CodingSession = () => {
 
   // Win overlay (populated by the server-authoritative `roundWinner` event)
   const [winData, setWinData] = useState<WinData | null>(null);
+
+  // Opponent disconnect banner (A4): timestamp when the forfeit triggers, null = opponent present
+  const [opponentDeadline, setOpponentDeadline] = useState<number | null>(null);
+  const [forfeitSecondsLeft, setForfeitSecondsLeft] = useState(0);
+
+  // Tick the forfeit countdown once per second while the banner is up
+  useEffect(() => {
+    if (!opponentDeadline) return;
+    const tick = () => setForfeitSecondsLeft(Math.max(0, Math.ceil((opponentDeadline - Date.now()) / 1000)));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [opponentDeadline]);
 
   // Refs to avoid stale closures in socket callbacks
   const executeResultRef = useRef<ExecuteResult | null>(null);
@@ -185,13 +204,15 @@ const CodingSession = () => {
     };
     socket.on('codeSynced', handleCodeSynced);
 
-    // First successful submission — round winner
+    // Round winner (server-authoritative): submission win or forfeit
     const handleRoundWinner = async (data: WinData) => {
       setWinData(data);
+      setOpponentDeadline(null);
 
-      // Only save for the non-winner — the winner's data was already saved
-      // correctly by execute.ts during their submission
-      if (data.winnerId !== user?.id) {
+      const iWon = data.winnerId === user?.id;
+      // A submission winner's results were already saved by execute.ts. Everyone else
+      // (the loser, or a forfeit winner who never submitted) saves their state here.
+      if (!iWon || data.reason === 'forfeit') {
         try {
           const curResult = executeResultRef.current;
           const curCode = isSynced ? (getContent() || codeRef.current) : codeRef.current;
@@ -206,7 +227,9 @@ const CodingSession = () => {
               runtime: curResult?.overallRuntime || 0,
               language: selectedLanguageRef.current,
               finalCode: curCode,
-              endReason: 'partner-won',
+              endReason: data.reason === 'forfeit'
+                ? (iWon ? 'opponent-forfeit' : 'forfeit')
+                : 'partner-won',
             }),
           });
         } catch {
@@ -220,6 +243,19 @@ const CodingSession = () => {
       }, 6000);
     };
     socket.on('roundWinner', handleRoundWinner);
+
+    // Opponent disconnect / reconnect during the match (A4 forfeit grace flow)
+    const handleOpponentDisconnected = (data: { roomId: string; userId: string; graceMs: number; deadline: number }) => {
+      if (data.userId === user?.id) return; // event is about us, not the opponent
+      setOpponentDeadline(data.deadline);
+    };
+    const handleOpponentReconnected = (data: { roomId: string; userId: string }) => {
+      if (data.userId === user?.id) return;
+      setOpponentDeadline(null);
+      toast.success('Opponent reconnected — match continues!');
+    };
+    socket.on('opponentDisconnected', handleOpponentDisconnected);
+    socket.on('opponentReconnected', handleOpponentReconnected);
 
     // Room closed / timer expired
     const handleRoomSessionEnd = async (event: 'roomClosed' | 'room-exit', data: any) => {
@@ -273,6 +309,8 @@ const CodingSession = () => {
       socket.off('connect', tryJoinRoom);
       socket.off('codeSynced', handleCodeSynced);
       socket.off('roundWinner', handleRoundWinner);
+      socket.off('opponentDisconnected', handleOpponentDisconnected);
+      socket.off('opponentReconnected', handleOpponentReconnected);
       socket.off('roomClosed');
       socket.off('room-exit');
       socket.off('disconnect', handleSocketDisconnect);
@@ -396,6 +434,13 @@ const CodingSession = () => {
       )}
 
       <div className="flex flex-col h-screen">
+        {/* Opponent disconnected banner (A4 forfeit grace countdown) */}
+        {opponentDeadline && !winData && (
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-yellow-900/60 border-b border-yellow-600/40 text-yellow-200 text-sm">
+            <span className="animate-pulse">●</span>
+            Opponent disconnected — waiting {forfeitSecondsLeft}s for them to reconnect, or you win by forfeit…
+          </div>
+        )}
         {/* Top banner: sync button + mode badge */}
         <div className="flex items-center justify-between px-4 py-1.5 bg-black border-b border-white/[0.08] text-xs text-[#4a5057]">
           <div className="flex items-center gap-2">
