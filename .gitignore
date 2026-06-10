@@ -8,6 +8,14 @@ backend/dist/
 
 # Ignore logs
 *.log
+logs/
+
+# Ignore environment files (never commit secrets)
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
 
 # Ignore OS/IDE files
 .DS_Store
