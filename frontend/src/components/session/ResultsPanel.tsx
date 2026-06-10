@@ -19,6 +19,8 @@ export interface ExecuteResult {
   results: TestCaseResult[];
   compilationError: string | null;
   overallRuntime: number;
+  /** Client-side only: friendly message for request failures (429 rate limit, 5xx, timeout) */
+  serviceError?: string | null;
 }
 
 interface ResultsPanelProps {
@@ -122,7 +124,14 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ isSubmitting, executeResult
           </div>
         )}
 
-        {!isSubmitting && executeResult && (
+        {!isSubmitting && executeResult?.serviceError && (
+          <div className="flex items-start gap-2 text-sm text-yellow-300 bg-yellow-900/30 border border-yellow-700 rounded p-2 mb-3">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{executeResult.serviceError}</span>
+          </div>
+        )}
+
+        {!isSubmitting && executeResult && !executeResult.serviceError && (
           <>
             {executeResult.compilationError ? (
               <div className="mb-3">

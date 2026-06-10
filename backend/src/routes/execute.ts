@@ -3,6 +3,7 @@ import { AppError, ValidationError, asyncHandler } from '../utils/errors.js';
 import { supabase } from '../config/supabase.js';
 import { CodeRunner } from '../services/codeRunner.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { executeRateLimiter } from '../middleware/executeRateLimit.js';
 import { getSocketService } from '../server.js';
 import { logger } from '../utils/logger.js';
 
@@ -11,7 +12,7 @@ const codeRunner = new CodeRunner();
 
 const SUPPORTED_LANGUAGES = ['javascript', 'python', 'java', 'cpp'] as const;
 
-router.post('/', authenticateToken, asyncHandler(async (req: any, res: any) => {
+router.post('/', authenticateToken, executeRateLimiter, asyncHandler(async (req: any, res: any) => {
     const { code, language, questionId, visibleOnly, roomId } = req.body;
     const userId = req.user?.userId;
 

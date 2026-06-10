@@ -363,7 +363,17 @@ const CodingSession = () => {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || 'Execution failed');
+        // Surface 429 (per-user rate limit) and other failures in ResultsPanel
+        const friendly = data.error
+          || (res.status === 429
+            ? 'You are running code too quickly — wait a moment and try again.'
+            : 'Execution failed. Please try again.');
+        setExecuteResult({
+          totalTests: 0, passed: 0, failed: 0, results: [],
+          compilationError: null, overallRuntime: 0,
+          serviceError: friendly,
+        });
+        toast.error(friendly);
         return;
       }
       const result: ExecuteResult = data.results;
@@ -379,7 +389,13 @@ const CodingSession = () => {
         toast.error(`${result.passed}/${result.totalTests} test cases passed`);
       }
     } catch (err: any) {
-      toast.error(err.message || 'Execution failed');
+      const friendly = 'Could not reach the execution server. Check your connection and try again.';
+      setExecuteResult({
+        totalTests: 0, passed: 0, failed: 0, results: [],
+        compilationError: null, overallRuntime: 0,
+        serviceError: friendly,
+      });
+      toast.error(err.message || friendly);
     } finally {
       setIsSubmitting(false);
     }
