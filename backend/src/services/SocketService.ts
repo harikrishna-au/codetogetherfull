@@ -24,8 +24,38 @@ export class SocketService {
     this.timerService = new TimerService(io);
     this.matchmakingService = new MatchmakingService(io);
     this.setupSocketHandlers();
-    // Initialize timers for existing active rooms
+    // Queues are in-memory: clear ghost 'waiting' states left over from a restart (A6)
+    void this.resetStaleQueueStates();
+    // Initialize timers for existing active rooms (stale over-length rooms are
+    // expired immediately by startRoomTimer -> handleTimerExpiry)
     this.timerService.initializeActiveRoomTimers();
+  }
+
+  /**
+   * On boot, reset any user_states stuck in 'waiting' to 'idle' (A6).
+   * The in-memory matchmaking queues were lost on restart, so those rows are
+   * ghosts that would block users from re-queueing.
+   */
+  private async resetStaleQueueStates(): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('user_states')
+        .update({
+          state: 'idle',
+          queue_joined_at: null,
+          socket_id: null,
+          is_active: false,
+        })
+        .eq('state', 'waiting')
+        .select('user_id');
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        logger.info('Reset stale queue states on boot', { count: data.length });
+      }
+    } catch (error) {
+      logger.error('Failed to reset stale queue states on boot:', error);
+    }
   }
 
   private setupSocketHandlers(): void {

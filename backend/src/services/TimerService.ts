@@ -57,14 +57,35 @@ export class TimerService {
         try {
             logger.info('Timer expired for room', { roomId });
 
-            // Mark room as ended
-            const { error } = await supabase
+            // Mark room as ended — conditional on still being active so we don't
+            // clobber a room already ended by a win/forfeit (A3/A6)
+            const { data: endedRooms, error } = await supabase
                 .from('rooms')
-                .update({ status: 'ended', ended_at: new Date().toISOString() })
-                .eq('room_id', roomId);
+                .update({ status: 'ended', ended_at: new Date().toISOString(), end_reason: 'timer' })
+                .eq('room_id', roomId)
+                .eq('status', 'active')
+                .select('participant1_id, participant2_id');
 
             if (error) {
                 logger.error('Failed to mark room as ended', { roomId, error });
+            }
+
+            // Room already ended elsewhere — nothing more to do
+            if (!error && (!endedRooms || endedRooms.length === 0)) {
+                this.stopRoomTimer(roomId);
+                return;
+            }
+
+            // Free both participants so they aren't stuck 'in-session' (A6)
+            const participants = endedRooms?.[0]
+                ? [endedRooms[0].participant1_id, endedRooms[0].participant2_id].filter(Boolean)
+                : [];
+            if (participants.length > 0) {
+                await supabase.from('user_states').update({
+                    state: 'idle',
+                    room_id: null,
+                    last_active: new Date().toISOString(),
+                }).in('user_id', participants);
             }
 
             // Emit timer-expired event to all participants
