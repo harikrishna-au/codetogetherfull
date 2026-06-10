@@ -10,6 +10,7 @@ import ProblemPanel from '@/components/session/ProblemPanel';
 import EditorPanel, { languageTemplates, type SupportedLanguage } from '@/components/session/EditorPanel';
 import ResultsPanel from '@/components/session/ResultsPanel';
 import PartnerRail from '@/components/session/PartnerRail';
+import FloatingVideo from '@/components/session/FloatingVideo';
 import { useChat } from '@/hooks/useChat';
 import ActiveUserHeartbeat from '@/components/ActiveUserHeartbeat';
 import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
@@ -538,7 +539,7 @@ const CodingSession = () => {
             <ResizableHandle withHandle />
 
             {/* Center Panel – Editor + Results */}
-            <ResizablePanel order={2} defaultSize={isChatOpen || isVideoOn ? 48 : 70}>
+            <ResizablePanel order={2} defaultSize={isChatOpen ? 48 : 70}>
               <div className="flex flex-col h-full">
               <div className="flex-1 overflow-hidden">
               <ResizablePanelGroup direction="vertical">
@@ -576,8 +577,8 @@ const CodingSession = () => {
               </div>
             </ResizablePanel>
 
-            {/* Right Panel – Partner Rail (presence + video + chat, true side-by-side) */}
-            {(isChatOpen || isVideoOn) && (
+            {/* Right Panel – Partner Rail (presence + chat, true side-by-side) */}
+            {isChatOpen && (
               <>
                 <ResizableHandle withHandle />
                 <ResizablePanel order={3} defaultSize={22} minSize={16} maxSize={34}>
@@ -587,12 +588,6 @@ const CodingSession = () => {
                     partnerTyping={partnerTyping}
                     partnerPresent={isWebRTCConnected || partnerUsers.length > 0
                       || chatMessages.some(m => m.user !== userName)}
-                    isConnected={isWebRTCConnected}
-                    isVideoOn={isVideoOn}
-                    isAudioOn={isAudioOn}
-                    localStream={localStream}
-                    remoteStream={remoteStream}
-                    isChatOpen={isChatOpen}
                     setIsChatOpen={setIsChatOpen}
                     chatMessage={chatMessage}
                     setChatMessage={setChatMessage}
@@ -605,6 +600,19 @@ const CodingSession = () => {
             )}
           </ResizablePanelGroup>
         </div>
+
+        {/* Floating face bubbles — video presence that steals zero layout space */}
+        {(isVideoOn || isAudioOn || remoteStream) && !winData && (
+          <FloatingVideo
+            localStream={localStream}
+            remoteStream={remoteStream}
+            isVideoOn={isVideoOn}
+            isAudioOn={isAudioOn}
+            isConnected={isWebRTCConnected}
+            partnerName={partnerUsers[0]?.name
+              || chatMessages.find(m => m.user !== userName)?.user}
+          />
+        )}
       </div>
     </>
   );
