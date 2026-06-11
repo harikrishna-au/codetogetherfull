@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useContext, useCallback } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useSessionAuth } from '@/context/SessionAuthContext';
 import { API_ENDPOINTS } from '@/lib/api';
 import type { ExecuteResult } from '@/components/session/ResultsPanel';
 import { toast } from 'sonner';
@@ -102,6 +103,7 @@ const SESSION_STORE_KEY = 'arena.activeSession';
 
 const CodingSession = () => {
   const { user, loading: authLoading } = useContext(AuthContext);
+  const { sessionToken } = useSessionAuth();
   const location = useLocation();
   const params = useParams();
   const { socket } = useSocket();
@@ -401,7 +403,10 @@ const CodingSession = () => {
     try {
       const res = await fetch(API_ENDPOINTS.EXECUTE, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({ code: currentCode, language: selectedLanguage, questionId, visibleOnly, roomId }),
       });
