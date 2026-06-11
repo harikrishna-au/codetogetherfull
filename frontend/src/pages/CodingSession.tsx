@@ -98,31 +98,48 @@ const WinOverlay = ({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+const SESSION_STORE_KEY = 'arena.activeSession';
+
 const CodingSession = () => {
-  const { user } = useContext(AuthContext);
+  const { user, loading: authLoading } = useContext(AuthContext);
   const location = useLocation();
   const params = useParams();
   const { socket } = useSocket();
   const navigate = useNavigate();
-  const { mode, difficulty, question: locationQuestion } = location.state || { mode: 'friendly', difficulty: 'easy' };
   const roomId = params.roomId;
+
+  // Recover mode/difficulty from navigation state (first load) or sessionStorage (reload)
+  const sessionMeta = (() => {
+    if (location.state?.mode) return location.state;
+    try { return JSON.parse(sessionStorage.getItem(SESSION_STORE_KEY) ?? '{}'); } catch { return {}; }
+  })();
+  const { mode = 'friendly', difficulty = 'easy', question: locationQuestion = null } = sessionMeta;
+
   const userName = user?.displayName || user?.email || 'You';
+
+  // Persist session metadata so a page reload lands back in the session
+  useEffect(() => {
+    if (!roomId) return;
+    try {
+      sessionStorage.setItem(SESSION_STORE_KEY, JSON.stringify({ mode, difficulty, roomId }));
+    } catch { /* non-fatal */ }
+  }, [roomId, mode, difficulty]);
 
   // ── Validate room ────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (authLoading) return; // Wait for Clerk to finish loading — don't redirect prematurely on reload
     if (!user || !roomId) {
-      sessionStorage.setItem('fromSession', 'true');
+      sessionStorage.removeItem(SESSION_STORE_KEY);
       navigate('/', { replace: true });
       return;
     }
     const isValidRoomId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomId);
     if (!isValidRoomId) {
-      sessionStorage.setItem('fromSession', 'true');
+      sessionStorage.removeItem(SESSION_STORE_KEY);
       navigate('/', { replace: true });
       return;
     }
-    sessionStorage.removeItem('fromSession');
-  }, [user, roomId, navigate]);
+  }, [user, roomId, navigate, authLoading]);
 
   // ── Editor state ─────────────────────────────────────────────────────────────
   // Independent editor by default; `isSynced` activates Yjs collaboration
