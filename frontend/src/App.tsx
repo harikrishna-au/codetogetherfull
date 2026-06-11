@@ -12,6 +12,8 @@ import CodingSession from "./pages/CodingSession";
 import SessionResults from "./pages/SessionResults";
 import ProfilePage from "./pages/ProfilePage";
 import Leaderboard from "./pages/Leaderboard";
+import PrivateRoom from "./pages/PrivateRoom";
+import JoinRoom from "./pages/JoinRoom";
 import NotFound from "./pages/NotFound";
 import React from "react";
 import { getOrCreateSessionId } from "@/lib/session";
@@ -54,6 +56,8 @@ const App = () => (
                     <Route path="/session/:roomId/results" element={<SessionResults />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/leaderboard" element={<Leaderboard />} />
+                    <Route path="/private-room" element={<PrivateRoom />} />
+                    <Route path="/join/:code" element={<JoinRoom />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

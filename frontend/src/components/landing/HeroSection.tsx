@@ -3,7 +3,7 @@ import { LiveUserCounts } from "@/components/LiveUserCounts";
 import { ModeSelector } from "@/components/ModeSelector";
 import { Button } from "@/components/ui/button";
 import { motion, useScroll, useTransform, Variants } from "framer-motion";
-import { ArrowRight, ChevronDown, Zap, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronDown, Zap, Sparkles, Lock } from "lucide-react";
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FlipWords } from "../ui/flip-words";
@@ -287,7 +287,7 @@ animate={{ opacity: 1, y: 0 }}
 mode={selectedMode}
 difficulty={selectedDifficulty}
 />
-<div className="mt-10">
+<div className="mt-10 flex flex-col items-center gap-3">
 <Button
 onClick={handleStartCoding}
 size="xl"
@@ -300,6 +300,13 @@ Start{" "}
 ? "Collaborating"
 : "Competing"}
 </Button>
+<button
+onClick={() => navigate("/private-room", { state: { mode: selectedMode, difficulty: selectedDifficulty } })}
+className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/80 transition-colors px-3 py-1.5 rounded-full border border-transparent hover:border-border/40"
+>
+<Lock className="w-3 h-3" />
+Challenge a friend (private room)
+</button>
 </div>
 </motion.div>
 )}

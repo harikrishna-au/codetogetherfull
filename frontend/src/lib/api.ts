@@ -21,4 +21,6 @@ export const API_ENDPOINTS = {
   USER_HISTORY: `${API_BASE_URL}/users/history`,
   USERS_BASE: `${API_BASE_URL}/users`,
   LEADERBOARD: `${API_BASE_URL}/leaderboard`,
+  INVITE_CREATE: `${API_BASE_URL}/invite/create`,
+  INVITE_BASE: `${API_BASE_URL}/invite`,
 };
