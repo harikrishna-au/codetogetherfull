@@ -1,8 +1,11 @@
 // src/lib/api.ts
 // Centralized API endpoint definitions
 
-// Use relative path for proxying in dev, or absolute env var in prod
-const API_BASE_URL = "/api";
+// In dev: Vite proxies /api → localhost:4000
+// In production: VITE_API_URL must be set to the Railway backend URL
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
 
 export const API_ENDPOINTS = {
   SESSION_LOGIN: `${API_BASE_URL}/session/login`,

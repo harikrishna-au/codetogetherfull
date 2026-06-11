@@ -1,9 +1,9 @@
 // src/lib/socket.ts
 import { io, Socket } from 'socket.io-client';
 
-// Use http:// — Socket.IO handles the WS upgrade internally
-// Use relative URL in production (Nginx proxy), or localhost:4000 in dev
-const SOCKET_URL = import.meta.env.PROD ? '/' : 'http://localhost:4000';
+// Dev: connect directly to local backend
+// Production: VITE_API_URL is the Railway backend URL (e.g. https://xxx.up.railway.app)
+const SOCKET_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? '' : 'http://localhost:4000');
 
 let socket: Socket | null = null;
 let lastToken: string | null = null;

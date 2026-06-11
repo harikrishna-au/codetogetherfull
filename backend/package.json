@@ -8,7 +8,7 @@
     "dev": "nodemon --exec tsx src/server.ts",
     "kill": "lsof -t -i :4000 | xargs kill -9",
     "build": "tsc && tsc-alias",
-    "start": "tsx src/server.ts",
+    "start": "node dist/server.js",
     "seed": "tsx src/scripts/seedDatabase.ts",
     "seed:problems": "tsx src/scripts/seedProblems.ts",
     "test": "jest",
