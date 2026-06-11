@@ -14,7 +14,7 @@ const Matchmaking = () => {
   const location = useLocation();
   const { user } = useSessionAuth();
   const { socket, connected } = useSocket();
-  const { phase, countdown, matchFound, matchedRoomId, matchedQuestion, joinQueue: ctxJoinQueue, leaveQueue } = useMatchmaking();
+  const { phase, countdown, matchFound, matchedRoomId, matchedQuestion, queueStatus, joinQueue: ctxJoinQueue, leaveQueue } = useMatchmaking();
 
   const locationState = location.state || { mode: 'friendly', difficulty: 'easy' };
   const [mode] = useState(locationState.mode || 'friendly');
@@ -134,7 +134,32 @@ const Matchmaking = () => {
                     <span className="text-border">•</span>
                     <span className="capitalize font-medium text-foreground/70">{difficulty}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Queue times vary based on availability.</p>
+
+                  {/* Live queue status — appears after first server tick (~5s) */}
+                  {queueStatus && (
+                    <div className="mt-3 rounded-xl border border-border/40 bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1.5 backdrop-blur-sm">
+                      <div className="flex justify-between">
+                        <span>Position</span>
+                        <span className="font-semibold text-foreground/80">#{queueStatus.position} of {queueStatus.queueSize}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Wait time</span>
+                        <span className="font-semibold text-foreground/80">
+                          {queueStatus.waitSeconds < 60
+                            ? `${queueStatus.waitSeconds}s`
+                            : `${Math.floor(queueStatus.waitSeconds / 60)}m ${queueStatus.waitSeconds % 60}s`}
+                        </span>
+                      </div>
+                      {mode === 'challenge' && (
+                        <div className="flex justify-between">
+                          <span>Rating window</span>
+                          <span className="font-semibold text-foreground/80">±{queueStatus.ratingWindow}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!queueStatus && <p className="text-xs text-muted-foreground">Queue times vary based on availability.</p>}
                 </div>
 
                 {!matchedRoomId && (

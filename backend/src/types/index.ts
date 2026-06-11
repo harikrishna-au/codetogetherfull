@@ -213,6 +213,8 @@ export interface ServerToClientEvents {
   // Forfeit grace flow (A4)
   opponentDisconnected: (data: { roomId: string; userId: string; graceMs: number; deadline: number }) => void;
   opponentReconnected: (data: { roomId: string; userId: string }) => void;
+  // Rating-based matchmaking status (B3)
+  queueStatus: (data: { position: number; waitSeconds: number; queueSize: number; ratingWindow: number }) => void;
   codeSynced: (data: { initiatorId: string; code: string }) => void;
   // Yjs collaborative editing
   'yjs:sync-response': (data: { state: string }) => void;

@@ -2,6 +2,13 @@ import React, { createContext, useContext, useState, useRef, useEffect, ReactNod
 import { useSocket } from '@/context/SocketContext';
 import { useSessionAuth } from '@/context/SessionAuthContext';
 
+export interface QueueStatus {
+  position: number;
+  waitSeconds: number;
+  queueSize: number;
+  ratingWindow: number;
+}
+
 interface MatchmakingContextType {
   mode: string;
   difficulty: string;
@@ -10,6 +17,7 @@ interface MatchmakingContextType {
   matchFound: boolean;
   matchedRoomId: string | null;
   matchedQuestion: any | null;
+  queueStatus: QueueStatus | null;
   setMode: (m: string) => void;
   setDifficulty: (d: string) => void;
   joinQueue: (mode: string, difficulty: string) => void;
@@ -28,6 +36,7 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
   const [matchFound, setMatchFound] = useState(false);
   const [matchedRoomId, setMatchedRoomId] = useState<string | null>(null);
   const [matchedQuestion, setMatchedQuestion] = useState<any | null>(null);
+  const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   const joinQueue = (queueMode: string, queueDifficulty: string) => {
@@ -39,10 +48,10 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
     setDifficulty(queueDifficulty);
     setPhase('matching');
     setMatchFound(false);
+    setQueueStatus(null);
     window.sessionStorage.setItem('inQueue', '1');
     window.sessionStorage.setItem('queueMode', queueMode);
     window.sessionStorage.setItem('queueDifficulty', queueDifficulty);
-    console.log('[MatchmakingContext] Emitting joinQueue', queueMode, queueDifficulty);
     socket.emit('joinQueue', { type: queueMode, difficulty: queueDifficulty });
   };
 
@@ -51,6 +60,7 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
     setMatchFound(false);
     setMatchedRoomId(null);
     setMatchedQuestion(null);
+    setQueueStatus(null);
     window.sessionStorage.removeItem('inQueue');
     window.sessionStorage.removeItem('queueMode');
     window.sessionStorage.removeItem('queueDifficulty');
@@ -61,13 +71,12 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Listen for matchFound / matchError from the socket
   useEffect(() => {
     if (!socket) return;
 
     const onMatchFound = (data: any) => {
-      console.log('[MatchmakingContext] matchFound received', data);
       setMatchFound(true);
+      setQueueStatus(null);
       if (data?.roomId) setMatchedRoomId(data.roomId);
       if (data?.question) setMatchedQuestion(data.question);
       window.sessionStorage.removeItem('inQueue');
@@ -76,11 +85,18 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
       setTimeout(() => setPhase('countdown'), 500);
     };
 
+    const onQueueStatus = (data: QueueStatus) => {
+      setQueueStatus(data);
+    };
+
     socket.on('matchFound', onMatchFound);
-    return () => { socket.off('matchFound', onMatchFound); };
+    socket.on('queueStatus', onQueueStatus);
+    return () => {
+      socket.off('matchFound', onMatchFound);
+      socket.off('queueStatus', onQueueStatus);
+    };
   }, [socket]);
 
-  // Countdown timer
   useEffect(() => {
     if (phase === 'countdown') {
       setCountdown(3);
@@ -102,7 +118,7 @@ export const MatchmakingProvider = ({ children }: { children: ReactNode }) => {
   return (
     <MatchmakingContext.Provider value={{
       mode, difficulty, phase, countdown, matchFound, matchedRoomId, matchedQuestion,
-      setMode, setDifficulty, joinQueue, leaveQueue,
+      queueStatus, setMode, setDifficulty, joinQueue, leaveQueue,
     }}>
       {children}
     </MatchmakingContext.Provider>

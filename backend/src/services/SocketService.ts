@@ -667,8 +667,16 @@ export class SocketService {
     // Confirm to client
     socket.emit('queueJoined', { type: mode, difficulty: normalizedDifficulty, timestamp: Date.now() });
 
+    // Fetch current rating for B3 rating-window matching (challenge mode)
+    const { data: userRow } = await supabase
+      .from('users')
+      .select('rating')
+      .eq('user_id', userId)
+      .single();
+    const rating = (userRow?.rating as number | null) ?? DEFAULT_RATING;
+
     // Attempt immediate match via in-memory queues
-    await this.matchmakingService.joinQueue(userId, socket.id, mode, normalizedDifficulty);
+    await this.matchmakingService.joinQueue(userId, socket.id, mode, normalizedDifficulty, rating);
   }
 
   private async handleRejoinQueue(socket: AuthenticatedSocket, _queueType: string): Promise<void> {
@@ -699,7 +707,14 @@ export class SocketService {
           .update({ socket_id: socket.id, is_active: true, last_active: new Date().toISOString() })
           .eq('user_id', userId);
 
-        await this.matchmakingService.joinQueue(userId, socket.id, userState.mode, userState.difficulty);
+        const { data: userRatingRow } = await supabase
+          .from('users')
+          .select('rating')
+          .eq('user_id', userId)
+          .single();
+        const rejoinRating = (userRatingRow?.rating as number | null) ?? DEFAULT_RATING;
+
+        await this.matchmakingService.joinQueue(userId, socket.id, userState.mode, userState.difficulty, rejoinRating);
 
         logger.info('User re-added to queue on rejoin', {
           userId,
