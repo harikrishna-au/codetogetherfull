@@ -44,23 +44,26 @@ const Header = () => {
             <Link to="/" className="flex items-center gap-2.5 group">
               <div
                 className={`
-                flex items-center justify-center rounded-lg bg-white/[0.06] border border-white/[0.08]
-                transition-all duration-500
+                flex items-center justify-center rounded-lg transition-all duration-500
                 ${scrolled ? "w-7 h-7" : "w-8 h-8"}
               `}
+                style={{
+                  background: "linear-gradient(160deg, rgba(78,201,176,0.22), rgba(255,107,94,0.14))",
+                  border: "1px solid rgba(78,201,176,0.35)",
+                }}
               >
-                <span className="text-[#cfd3d6] font-bold text-xs font-mono">
+                <span className="font-bold text-xs font-mono" style={{ color: "var(--teal-bright)" }}>
                   &lt;/&gt;
                 </span>
               </div>
               <span
                 className={`
-                font-semibold text-[#e2e5e8] tracking-tight transition-all duration-500
-                group-hover:text-white
+                font-semibold tracking-tight transition-all duration-500
                 ${scrolled ? "text-base" : "text-lg"}
               `}
+                style={{ color: "var(--fg)" }}
               >
-                codetogether
+                code<span style={{ color: "var(--teal-bright)" }}>together</span>
               </span>
             </Link>
 

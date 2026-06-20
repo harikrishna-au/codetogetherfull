@@ -5,7 +5,6 @@ import FeaturesSection from "@/components/landing/FeaturesSection";
 import Footer from "@/components/landing/Footer";
 import Header from "@/components/landing/Header";
 import HeroSection from "@/components/landing/HeroSection";
-import LightRays from "@/components/LightRays";
 import { useSessionAuth } from "@/context/SessionAuthContext";
 import { fetchUserState } from "@/lib/userState";
 import { useEffect, useState } from "react";
@@ -58,28 +57,9 @@ const Index = () => {
 	return (
 		<>
 			{user && <ActiveUserHeartbeat userId={user.id} />}
-			<div className="relative min-h-screen overflow-x-hidden scroll-smooth">
+			<div className="arena relative min-h-screen overflow-x-hidden scroll-smooth">
 				<BackgroundEffects />
 				<Header />
-
-				{/* LightRays - Scrolls with Hero Section */}
-				<div className="absolute top-0 left-0 right-0 h-screen pointer-events-none overflow-hidden -z-10">
-					<LightRays
-						raysOrigin="top-center"
-						raysColor="#ffffff"
-						raysSpeed={0.5}
-						lightSpread={0.5}
-						rayLength={3}
-						followMouse={true}
-						mouseInfluence={0.1}
-						noiseAmount={0}
-						distortion={0}
-						className="custom-rays"
-						pulsating={false}
-						fadeDistance={1}
-						saturation={0.5}
-					/>
-				</div>
 
 				<HeroSection
 					selectedMode={selectedMode}

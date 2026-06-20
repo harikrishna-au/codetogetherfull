@@ -1,154 +1,156 @@
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
-import { Users, Code, Timer, Trophy, Zap, Heart, Sparkles } from 'lucide-react';
+import { Users, Code, Timer, Trophy, Heart, Swords, type LucideIcon } from 'lucide-react';
 
-const features = [
+interface Feature {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  accent: string;
+  accentBright: string;
+  span: string;
+  big?: boolean;
+}
+
+const features: Feature[] = [
   {
-    icon: Zap,
-    title: 'Real-time Duels',
-    description: 'Challenge developers to live coding battles. Solve problems head-to-head with real-time progress tracking.',
+    icon: Swords,
+    title: 'Real-time duels',
+    description:
+      'Challenge a developer to a live 1v1. Watch their progress bar climb beside yours as tests turn green — first to solve it takes the win.',
+    accent: 'var(--teal)',
+    accentBright: 'var(--teal-bright)',
+    span: 'lg:col-span-3 lg:row-span-2',
+    big: true,
   },
   {
     icon: Users,
-    title: 'Smart Matchmaking',
-    description: 'Get paired with developers at your skill level. Our system finds the right opponent for a fair challenge.',
-  },
-  {
-    icon: Timer,
-    title: 'Timed Challenges',
-    description: '15-minute focused sessions keep you sharp. Perfect for quick practice during breaks or intense competition.',
+    title: 'Skill-based matchmaking',
+    description: 'Rating-aware pairing finds an opponent near your level — the window widens until it lands a fair fight, usually in seconds.',
+    accent: 'var(--coral)',
+    accentBright: 'var(--coral-bright)',
+    span: 'lg:col-span-3',
   },
   {
     icon: Code,
-    title: 'Live Code Editor',
-    description: 'Full-featured Monaco editor with syntax highlighting, multi-language support, and instant test feedback.',
+    title: 'Live shared editor',
+    description: 'A full Monaco editor with multi-language support, syntax highlighting, and instant test feedback — optionally synced in real time.',
+    accent: 'var(--teal)',
+    accentBright: 'var(--teal-bright)',
+    span: 'lg:col-span-3',
+  },
+  {
+    icon: Timer,
+    title: 'Timed sessions',
+    description: 'Focused rounds keep the pressure real.',
+    accent: 'var(--amber)',
+    accentBright: 'var(--amber)',
+    span: 'lg:col-span-2',
   },
   {
     icon: Trophy,
-    title: 'Leaderboards',
-    description: 'Track your progress and climb the ranks. Compete for top positions across different difficulty levels.',
+    title: 'Elo leaderboards',
+    description: 'Win, climb tiers, defend your rank.',
+    accent: 'var(--coral)',
+    accentBright: 'var(--coral-bright)',
+    span: 'lg:col-span-2',
   },
   {
     icon: Heart,
-    title: 'Learn Together',
-    description: 'Review solutions after each session. Discover new approaches and patterns from fellow developers.',
+    title: 'Learn together',
+    description: 'Review each other’s solutions after.',
+    accent: 'var(--teal)',
+    accentBright: 'var(--teal-bright)',
+    span: 'lg:col-span-2',
   },
 ];
 
-interface FeatureCardProps {
-  icon: typeof Zap;
-  title: string;
-  description: string;
-  index: number;
-}
-
-const FeatureCard = ({ icon: Icon, title, description, index }: FeatureCardProps) => {
+const FeatureCard = ({ feature, index }: { feature: Feature; index: number }) => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-80px' });
-
-  const isLeft = index % 2 === 0;
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+  const Icon = feature.icon;
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, x: isLeft ? -40 : 40 }}
-      animate={isInView ? { opacity: 1, x: 0 } : {}}
-      transition={{
-        duration: 0.6,
-        delay: (index % 3) * 0.1,
-        ease: [0.16, 1, 0.3, 1],
-      }}
-      className="group relative"
+      initial={{ opacity: 0, y: 30 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, delay: (index % 3) * 0.08, ease: [0.22, 1, 0.36, 1] }}
+      className={`group ct-card relative overflow-hidden rounded-2xl p-6 ${feature.span} ${feature.big ? 'flex flex-col justify-between' : ''}`}
     >
-      <div className="
-        relative overflow-hidden rounded-2xl p-6
-        bg-gradient-to-br from-card to-card/50 border border-border/50
-        hover:shadow-lg hover:shadow-primary/10 hover:border-primary/30
-        transition-all duration-500 group-hover:scale-[1.02]
-      ">
-        {/* Subtle glow on hover */}
-        <div className="
-          absolute inset-0 opacity-0 group-hover:opacity-100
-          transition-opacity duration-500
-          bg-gradient-to-br from-primary/5 to-transparent
-        " />
+      {/* hover glow */}
+      <div
+        className="absolute -top-16 -right-16 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: feature.accent }}
+      />
 
-        <div className="relative z-10">
-          {/* Icon */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={isInView ? { opacity: 1, scale: 1 } : {}}
-            transition={{
-              duration: 0.5,
-              delay: (index % 3) * 0.1 + 0.2,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-            className="
-              w-12 h-12 rounded-xl mb-4
-              flex items-center justify-center
-              bg-primary/10 border border-primary/20
-              group-hover:bg-primary/20 group-hover:border-primary/40
-              transition-all duration-500
-            "
-          >
-            <Icon className="w-6 h-6 text-primary group-hover:text-accent transition-colors duration-300" />
-          </motion.div>
-
-          {/* Title */}
-          <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">
-            {title}
-          </h4>
-
-          {/* Description */}
-          <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/70 transition-colors duration-300">
-            {description}
-          </p>
+      <div className="relative">
+        <div
+          className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110"
+          style={{ background: `${feature.accent}1a`, border: `1px solid ${feature.accent}33` }}
+        >
+          <Icon className="w-5 h-5" style={{ color: feature.accentBright }} />
         </div>
-
-        {/* Bottom accent line */}
-        <div className="
-          absolute bottom-0 left-0 right-0 h-[2px]
-          bg-gradient-to-r from-transparent via-primary/20 to-transparent
-          group-hover:via-primary/50 transition-all duration-500
-        " />
+        <h4 className={`font-display font-bold text-[var(--fg)] mb-2 tracking-tight ${feature.big ? 'text-2xl' : 'text-lg'}`}>
+          {feature.title}
+        </h4>
+        <p className={`text-[var(--fg-dim)] leading-relaxed ${feature.big ? 'text-base' : 'text-sm'}`}>
+          {feature.description}
+        </p>
       </div>
+
+      {/* big card extra flourish — a faux progress duel */}
+      {feature.big && (
+        <div className="relative mt-6 space-y-2.5">
+          <div className="flex items-center gap-2">
+            <span className="font-mono-ct text-[10px] w-10 text-[var(--teal-bright)]">YOU</span>
+            <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-full rounded-full ct-grow-teal" style={{ width: '82%', background: 'linear-gradient(90deg,var(--teal),var(--teal-bright))' }} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono-ct text-[10px] w-10 text-[var(--coral-bright)]">OPP</span>
+            <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-full rounded-full ct-grow-coral" style={{ width: '57%', background: 'linear-gradient(90deg,var(--coral),var(--coral-bright))' }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[2px] opacity-40 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: `linear-gradient(90deg, transparent, ${feature.accent}, transparent)` }}
+      />
     </motion.div>
   );
 };
 
 const FeaturesSection = () => {
   const headerRef = useRef(null);
-  const isHeaderInView = useInView(headerRef, { once: true, margin: '-80px' });
+  const inView = useInView(headerRef, { once: true, margin: '-80px' });
 
   return (
-    <section id="features" className="relative z-10 py-24 px-4">
+    <section id="features" className="relative z-10 py-28 px-4">
       <div className="container mx-auto max-w-5xl">
-        {/* Section header */}
         <motion.div
           ref={headerRef}
-          className="text-center mb-16"
+          className="text-center mb-14"
           initial={{ opacity: 0, y: 30 }}
-          animate={isHeaderInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-secondary font-bold mb-3 flex items-center justify-center gap-2">
-            <Sparkles className="w-3 h-3" />
-            Why Codetogether
-            <Sparkles className="w-3 h-3" />
-          </p>
-          <h2 className="text-4xl sm:text-5xl font-black text-foreground tracking-tight mb-4">
+          <span className="inline-block text-[11px] uppercase tracking-[0.22em] font-bold text-[var(--fg-faint)] mb-3">
+            Why codetogether
+          </span>
+          <h2 className="font-display text-4xl sm:text-5xl font-bold text-[var(--fg)] tracking-tight">
             Built for developers who
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {' '}grow together
-            </span>
+            <span className="ct-text-duel"> grow together</span>
           </h2>
-          <div className="mx-auto h-[2px] w-24 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
         </motion.div>
 
-        {/* Feature grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 auto-rows-[minmax(0,1fr)]">
           {features.map((feature, index) => (
-            <FeatureCard key={feature.title} {...feature} index={index} />
+            <FeatureCard key={feature.title} feature={feature} index={index} />
           ))}
         </div>
       </div>

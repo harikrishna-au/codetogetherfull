@@ -15,15 +15,26 @@ import Leaderboard from "./pages/Leaderboard";
 import PrivateRoom from "./pages/PrivateRoom";
 import JoinRoom from "./pages/JoinRoom";
 import NotFound from "./pages/NotFound";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { getOrCreateSessionId } from "@/lib/session";
 import { AuthProvider } from "@/context/AuthContext";
 
 import { SessionAuthProvider } from "@/context/SessionAuthContext";
 import { SocketProvider } from "@/context/SocketContext";
 import NoInternetWidget from "@/components/ui/no-internet-widget";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const queryClient = new QueryClient();
+
+/** Initial boot splash — shows once per page load, then fades. */
+const BootSplash = () => {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setDone(true), 1600);
+    return () => clearTimeout(t);
+  }, []);
+  return <LoadingScreen done={done} />;
+};
 
 
 
@@ -37,6 +48,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
       <TooltipProvider>
+        <BootSplash />
         <Toaster />
         <Sonner />
         <AuthProvider>

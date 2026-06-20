@@ -1,96 +1,55 @@
-import { motion } from "framer-motion";
-import { useMemo } from "react";
-
-const CODE_SYMBOLS = [
-	"{",
-	"}",
-	";",
-	"<",
-	">",
-	"/",
-	"//",
-	"=>",
-	"()",
-	"[]",
-	"&&",
-	"||",
-	"!=",
-	"++",
-	"===",
-	"...",
-	"<?>",
-	"</>",
-];
-
-interface FloatingSymbolProps {
-	symbol: string;
-	index: number;
-}
-
-const FloatingSymbol = ({ symbol, index }: FloatingSymbolProps) => {
-	const style = useMemo(() => {
-		const col = index % 6;
-		const row = Math.floor(index / 6);
-		return {
-			left: `${col * 15 + 5 + (row % 2) * 5}%`,
-			top: `${row * 20 + 10 + (index % 3) * 5}%`,
-			fontSize: `${12 + (index % 4) * 4}px`,
-		};
-	}, [index]);
-
-	return (
-		<motion.span
-			className="absolute select-none pointer-events-none whitespace-nowrap"
-			style={{
-				...style,
-				fontFamily:
-					"Fira Code, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-				color: `white`, // Slightly higher visibility
-			}}
-			animate={{
-				y: [0, -20, 0],
-				x: [0, index % 2 === 0 ? 10 : -10, 0],
-				opacity: [0.05, 0.15, 0.05],
-			}}
-			transition={{
-				duration: 8 + (index % 5) * 2,
-				repeat: Infinity,
-				ease: "easeInOut",
-				delay: index * 0.2,
-			}}
-		>
-			{symbol}
-		</motion.span>
-	);
-};
-
+/**
+ * Arena backdrop — perspective grid floor + dual aurora (teal vs coral)
+ * + fine noise + vignette. Replaces the old floating-symbols / light-rays look.
+ */
 const BackgroundEffects = () => {
-	return (
-		<div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-black">
-			{/* Visual Depth Gradients */}
-			<div
-				className="absolute inset-0 opacity-[0.05]"
-				style={{
-					backgroundImage: `radial-gradient(circle at 25% 25%, white 15%, transparent 50%)`,
-				}}
-			/>
+  return (
+    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" style={{ background: 'var(--ink)' }}>
+      {/* Deep base wash */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(120% 90% at 50% -10%, #11151a 0%, #0a0c0e 45%, #08090b 100%)',
+        }}
+      />
 
-			{/* Top Right Glow */}
-			<div className="absolute -top-[10%] -right-[10%] w-[70%] h-[70%] rounded-full blur-[120px] bg-white/[0.05]" />
+      {/* Teal aurora — top left (collaborate) */}
+      <div
+        className="arena-aurora ct-drift"
+        style={{
+          top: '-12%',
+          left: '-8%',
+          width: '46vw',
+          height: '46vw',
+          background:
+            'radial-gradient(circle, rgba(78,201,176,0.20) 0%, rgba(78,201,176,0.05) 45%, transparent 70%)',
+        }}
+      />
 
-			{/* Symbols Mapping */}
-			{CODE_SYMBOLS.map((symbol, index) => (
-				<FloatingSymbol
-					key={`${symbol}-${index}`}
-					symbol={symbol}
-					index={index}
-				/>
-			))}
+      {/* Coral aurora — bottom right (compete) */}
+      <div
+        className="arena-aurora ct-drift-slow"
+        style={{
+          bottom: '-15%',
+          right: '-10%',
+          width: '50vw',
+          height: '50vw',
+          background:
+            'radial-gradient(circle, rgba(255,107,94,0.16) 0%, rgba(255,107,94,0.04) 45%, transparent 70%)',
+        }}
+      />
 
-			{/* Vignette to focus the center */}
-			<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.5)_100%)]" />
-		</div>
-	);
+      {/* Perspective grid floor */}
+      <div className="absolute inset-x-0 top-0 h-screen arena-grid" />
+
+      {/* Fine film grain */}
+      <div className="absolute inset-0 ct-noise opacity-[0.035] mix-blend-overlay" />
+
+      {/* Vignette to focus the center */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.55)_100%)]" />
+    </div>
+  );
 };
 
 export default BackgroundEffects;

@@ -17,7 +17,7 @@ import ActiveUserHeartbeat from '@/components/ActiveUserHeartbeat';
 import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
 import { Switch } from '@/components/ui/switch';
 import { useWebRTC } from '@/hooks/useWebRTC';
-import { Users, Trophy, X } from 'lucide-react';
+import { Users, Trophy, X, Swords } from 'lucide-react';
 import { UserButton, SignedIn } from '@clerk/clerk-react';
 import { Link } from 'react-router-dom';
 
@@ -52,42 +52,64 @@ const WinOverlay = ({
 }) => {
   const iWon = data.winnerId === myId;
   const isForfeit = data.reason === 'forfeit';
+  const accent = iWon ? '#4ec9b0' : '#ff6b5e';
+  const accentBright = iWon ? '#6fe9cf' : '#ff8a7e';
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className={`relative rounded-2xl p-10 text-center shadow-2xl max-w-sm w-full
-        ${iWon ? 'bg-gradient-to-br from-yellow-900 via-yellow-800 to-yellow-900 border border-yellow-500/50'
-          : 'bg-gradient-to-br from-primary/85 via-primary/70 to-primary/85 border border-muted-foreground/50/50'}`}>
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-white"
-        >
+    <div className="arena fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
+         style={{ animation: 'ct-rise 0.3s ease both' }}>
+      {/* radiating burst */}
+      <div className="absolute w-[60vw] h-[60vw] rounded-full blur-[120px] pointer-events-none"
+           style={{ background: `radial-gradient(circle, ${accent}33, transparent 65%)` }} />
+
+      <div
+        className="relative rounded-3xl p-10 text-center w-full max-w-sm overflow-hidden"
+        style={{
+          background: 'linear-gradient(180deg, #14181c, #0c0e11)',
+          border: `1px solid ${accent}55`,
+          boxShadow: `0 40px 100px -20px ${accent}66, inset 0 1px 0 rgba(255,255,255,0.05)`,
+          animation: 'ct-rise 0.45s cubic-bezier(0.22,1,0.36,1) both',
+        }}
+      >
+        {/* top accent line */}
+        <div className="absolute top-0 inset-x-0 h-[2px]" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
+
+        <button onClick={onClose} className="absolute top-3 right-3 text-[#5c636b] hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
-        <Trophy className={`w-16 h-16 mx-auto mb-4 ${iWon ? 'text-yellow-400' : 'text-muted-foreground/70'}`} />
-        <h2 className={`text-3xl font-bold mb-2 ${iWon ? 'text-yellow-300' : 'text-slate-300'}`}>
-          {iWon ? '🎉 You Won!' : '😔 You Lost'}
+
+        {/* trophy medallion */}
+        <div className="relative mx-auto mb-5 w-20 h-20 ct-scene">
+          <div className="ct-3d w-full h-full rounded-2xl flex items-center justify-center"
+               style={{ background: `linear-gradient(160deg, ${accent}33, ${accent}0d)`, border: `1px solid ${accent}55`, transform: 'rotateX(-12deg) rotateY(14deg)', boxShadow: `0 20px 50px -10px ${accent}66` }}>
+            <Trophy className="w-10 h-10" style={{ color: accentBright }} />
+          </div>
+        </div>
+
+        <h2 className="font-display text-4xl font-extrabold mb-2 tracking-tight" style={{ color: accentBright }}>
+          {iWon ? 'Victory' : 'Defeated'}
         </h2>
-        <p className="text-gray-300 text-sm mb-1">
+        <p className="text-sm mb-1 text-[#9aa1a9]">
           {isForfeit
-            ? (iWon ? 'Your opponent disconnected — you win by forfeit!' : 'You forfeited the match by disconnecting.')
-            : (iWon ? 'First to solve it!' : 'Your opponent solved it first.')}
+            ? (iWon ? 'Your opponent disconnected — you win by forfeit.' : 'You forfeited by disconnecting.')
+            : (iWon ? 'First to pass every test. Clean work.' : 'Your opponent solved it first.')}
         </p>
         {!isForfeit && (
-          <p className="text-gray-400 text-xs">
-            {data.passed}/{data.total} tests · {data.runtime.toFixed(1)} ms · {data.language}
+          <p className="font-mono-ct text-xs text-[#5c636b]">
+            {data.passed}/{data.total} tests · {data.runtime.toFixed(1)}ms · {data.language}
           </p>
         )}
+
         {data.ratings && (() => {
           const myChange = iWon ? data.ratings.winner : data.ratings.loser;
           const positive = myChange.delta >= 0;
           return (
-            <div className="mt-4 animate-fade-in">
-              <span className={`inline-block text-2xl font-bold tabular-nums animate-bounce
-                ${positive ? 'text-green-400' : 'text-red-400'}`}>
+            <div className="mt-6 pt-5 border-t border-white/[0.06]">
+              <div className="text-5xl font-display font-extrabold tabular-nums"
+                   style={{ color: positive ? '#6fe9cf' : '#ff8a7e', animation: 'ct-rise 0.5s ease 0.2s both' }}>
                 {positive ? '+' : ''}{myChange.delta}
-              </span>
-              <p className="text-gray-400 text-xs mt-1">
-                Rating: {myChange.oldRating} → {myChange.newRating}
+              </div>
+              <p className="text-[#5c636b] text-xs mt-2 font-mono-ct">
+                {myChange.oldRating} → <span className="text-[#9aa1a9] font-semibold">{myChange.newRating}</span> rating
               </p>
             </div>
           );
@@ -498,52 +520,76 @@ const CodingSession = () => {
         />
       )}
 
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-screen bg-[#08090b]">
         {/* Opponent disconnected banner (A4 forfeit grace countdown) */}
         {opponentDeadline && !winData && (
-          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-yellow-900/60 border-b border-yellow-600/40 text-yellow-200 text-sm">
-            <span className="animate-pulse">●</span>
-            Opponent disconnected — waiting {forfeitSecondsLeft}s for them to reconnect, or you win by forfeit…
+          <div className="flex items-center justify-center gap-2 px-4 py-2 text-sm text-[#ff8a7e] border-b border-[#ff6b5e]/30"
+               style={{ background: 'linear-gradient(180deg, rgba(255,107,94,0.16), rgba(255,107,94,0.05))' }}>
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#ff6b5e] opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#ff6b5e]" />
+            </span>
+            Opponent disconnected — <span className="font-mono tabular-nums font-semibold">{forfeitSecondsLeft}s</span> to reconnect, or you win by forfeit
           </div>
         )}
-        {/* Top banner: sync button + mode badge */}
-        <div className="flex items-center justify-between px-4 py-1.5 bg-black border-b border-white/[0.08] text-xs text-[#4a5057]">
-          <div className="flex items-center gap-2">
-            <span className="capitalize font-medium text-[#8a9099]">{mode}</span>
-            <span className="text-[#2e3338]">·</span>
-            <span className="capitalize text-[#6b7075]">{difficulty}</span>
-            {isSynced && (
-              <span className="flex items-center gap-1 text-[#cfd3d6] ml-2">
-                <Users className="w-3 h-3" /> Collaborative
+
+        {/* ── Arena top bar ── */}
+        <div
+          className="relative flex items-center justify-between px-4 h-12 border-b border-white/[0.08]"
+          style={{ background: 'linear-gradient(180deg, #0e1114, #0a0c0e)' }}
+        >
+          {/* Left — brand + match meta */}
+          <div className="flex items-center gap-3 min-w-0">
+            <Link to="/" className="flex items-center gap-2 group shrink-0">
+              <span className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold font-mono"
+                    style={{ background: 'linear-gradient(160deg, rgba(78,201,176,0.22), rgba(255,107,94,0.14))', border: '1px solid rgba(78,201,176,0.35)', color: '#6fe9cf' }}>
+                &lt;/&gt;
               </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={`text-xs ${isSynced ? 'text-[#cfd3d6] font-medium' : 'text-[#2e3338]'}`}>
-              {isSynced ? 'Sync ON' : 'Sync OFF'}
+            </Link>
+            <span className="hidden sm:flex items-center gap-2 text-xs">
+              <span className="px-2 py-0.5 rounded-full capitalize font-semibold"
+                    style={mode === 'challenge'
+                      ? { color: '#ff8a7e', background: 'rgba(255,107,94,0.12)', border: '1px solid rgba(255,107,94,0.25)' }
+                      : { color: '#6fe9cf', background: 'rgba(78,201,176,0.12)', border: '1px solid rgba(78,201,176,0.25)' }}>
+                {mode === 'challenge' ? 'Ranked duel' : 'Collaborate'}
+              </span>
+              <span className="px-2 py-0.5 rounded-full capitalize text-[#9aa1a9] border border-white/[0.08]">{difficulty}</span>
             </span>
-            <Switch
-              checked={isSynced}
-              onCheckedChange={(checked) => {
-                setIsSynced(checked);
-                if (checked) {
-                  toast.success('Collaborative editing enabled');
-                } else {
-                  toast.info('Collaborative editing disabled');
-                }
-              }}
-              className="data-[state=checked]:bg-white/20 data-[state=unchecked]:bg-white/[0.04]"
-            />
-            {/* User profile controls */}
+          </div>
+
+          {/* Center — VS presence */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 text-xs font-semibold">
+            <span className="flex items-center gap-1.5 text-[#6fe9cf]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#4ec9b0] animate-pulse" />
+              You
+            </span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/[0.04] border border-white/[0.1]">
+              <Swords className="w-3 h-3 text-[#9aa1a9]" />
+            </span>
+            <span className={`flex items-center gap-1.5 ${opponentDeadline ? 'text-[#5c636b]' : 'text-[#ff8a7e]'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${opponentDeadline ? 'bg-[#5c636b]' : 'bg-[#ff6b5e] animate-pulse'}`} />
+              {opponentDeadline ? 'Reconnecting…' : 'Opponent'}
+            </span>
+          </div>
+
+          {/* Right — sync + profile */}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <span className={`hidden sm:inline text-[11px] font-medium ${isSynced ? 'text-[#6fe9cf]' : 'text-[#5c636b]'}`}>
+                {isSynced ? 'Synced' : 'Solo'}
+              </span>
+              <Switch
+                checked={isSynced}
+                onCheckedChange={(checked) => {
+                  setIsSynced(checked);
+                  checked ? toast.success('Collaborative editing enabled') : toast.info('Collaborative editing disabled');
+                }}
+                className="data-[state=checked]:bg-[#4ec9b0] data-[state=unchecked]:bg-white/[0.06]"
+              />
+            </label>
             <SignedIn>
-              <div className="flex items-center gap-2 pl-2 border-l border-[#3e3e42]">
-                <Link
-                  to="/profile"
-                  className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-white/[0.06] transition-colors"
-                >
-                  Profile
-                </Link>
-                <div className="ring-1 ring-white/10 rounded-full hover:ring-white/25 transition-all">
+              <div className="flex items-center gap-2 pl-2 border-l border-white/[0.08]">
+                <div className="ring-1 ring-white/10 rounded-full hover:ring-[#4ec9b0]/40 transition-all">
                   <UserButton afterSignOutUrl="/" />
                 </div>
               </div>
@@ -551,7 +597,7 @@ const CodingSession = () => {
           </div>
         </div>
 
-        <div className="flex h-[calc(100vh-2.25rem)]">
+        <div className="flex flex-1 min-h-0">
           <ResizablePanelGroup direction="horizontal" className="flex-1">
             {/* Left Panel – Problem */}
             <ResizablePanel order={1} defaultSize={30} minSize={22}>

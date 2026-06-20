@@ -45,13 +45,13 @@ const ContactSection = () => {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-[#6b7075] mb-3">
+          <p className="text-[11px] uppercase tracking-[0.22em] font-bold text-[var(--fg-faint)] mb-3">
             Get in Touch
           </p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4">
-            Contact & Support
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--fg)] tracking-tight mb-4">
+            Questions? <span className="ct-text-teal">We're listening.</span>
           </h2>
-          <div className="mx-auto h-[1px] w-20 bg-gradient-to-r from-transparent via-[#cfd3d6]/30 to-transparent" />
+          <div className="mx-auto h-[2px] w-20 bg-gradient-to-r from-transparent via-[var(--teal)]/50 to-transparent" />
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -108,12 +108,8 @@ const ContactSection = () => {
             </div>
             <Button
               type="submit"
-              className="
-                w-full rounded-xl h-11 text-sm font-medium
-                bg-white/[0.06] text-[#cfd3d6] border border-white/[0.1]
-                hover:bg-white/[0.1] hover:text-white hover:border-white/[0.18]
-                transition-all duration-300
-              "
+              className="w-full rounded-xl h-11 text-sm font-semibold text-[#04201b] border-0 transition-all duration-300 hover:brightness-110"
+              style={{ background: "linear-gradient(100deg,var(--teal-bright),var(--teal))" }}
             >
               <Send className="w-4 h-4 mr-2" />
               Send Message

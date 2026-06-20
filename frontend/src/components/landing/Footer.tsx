@@ -4,10 +4,18 @@ const Footer = () => (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-white/[0.06] border border-white/[0.08] flex items-center justify-center">
-            <span className="text-[#cfd3d6] font-bold text-[10px]">&lt;/&gt;</span>
+          <div
+            className="w-6 h-6 rounded-md flex items-center justify-center"
+            style={{
+              background: "linear-gradient(160deg, rgba(78,201,176,0.22), rgba(255,107,94,0.14))",
+              border: "1px solid rgba(78,201,176,0.3)",
+            }}
+          >
+            <span className="font-bold text-[10px]" style={{ color: "var(--teal-bright)" }}>&lt;/&gt;</span>
           </div>
-          <span className="text-sm font-medium text-[#6b7075]">codetogether</span>
+          <span className="text-sm font-medium text-[var(--fg-dim)]">
+            code<span style={{ color: "var(--teal-bright)" }}>together</span>
+          </span>
         </div>
 
         {/* Links */}

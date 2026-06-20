@@ -1,5 +1,4 @@
 
-import { Card, CardContent } from '@/components/ui/card';
 import { Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '@/lib/api';
@@ -34,16 +33,16 @@ export const LiveUserCounts = ({ mode, difficulty }: LiveUserCountsProps) => {
   }, [mode, difficulty]);
 
   return (
-    <Card className="bg-white/5 border-white/20 max-w-md mx-auto">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-center space-x-3">
-          <Users className="w-5 h-5 text-accent/90" />
-          <span className="text-white font-medium">
-            {userCount} users waiting in {mode} mode ({difficulty})
-          </span>
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex items-center justify-center gap-2.5 rounded-full border border-[var(--line)] bg-white/[0.03] px-4 py-2.5 max-w-md mx-auto backdrop-blur-sm">
+      <Users className="w-4 h-4 text-[var(--teal-bright)]" />
+      <span className="text-sm text-[var(--fg-dim)]">
+        <span className="font-semibold text-[var(--fg)] tabular-nums">{userCount}</span> waiting in{' '}
+        <span className="capitalize text-[var(--fg)]">{mode}</span> · <span className="capitalize">{difficulty}</span>
+      </span>
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--teal)] opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--teal-bright)]" />
+      </span>
+    </div>
   );
 };
