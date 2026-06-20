@@ -30,7 +30,7 @@ const queryClient = new QueryClient();
 const BootSplash = () => {
   const [done, setDone] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setDone(true), 1600);
+    const t = setTimeout(() => setDone(true), 1900);
     return () => clearTimeout(t);
   }, []);
   return <LoadingScreen done={done} />;

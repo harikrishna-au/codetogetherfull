@@ -22,9 +22,9 @@ interface Question {
 }
 
 const difficultyClass: Record<string, string> = {
-  easy: 'text-green-400 border-accent/40 bg-accent/10',
-  medium: 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10',
-  hard: 'text-red-400 border-red-500/40 bg-red-500/10',
+  easy: 'text-[#6fe9cf] border-[#4ec9b0]/40 bg-[#4ec9b0]/10',
+  medium: 'text-[#ffc24b] border-[#ffc24b]/40 bg-[#ffc24b]/10',
+  hard: 'text-[#ff8a7e] border-[#ff6b5e]/40 bg-[#ff6b5e]/10',
 };
 
 const ProblemPanel: React.FC<ProblemPanelProps> = ({ difficulty, roomId, initialQuestion }) => {
@@ -93,19 +93,22 @@ const ProblemPanel: React.FC<ProblemPanelProps> = ({ difficulty, roomId, initial
   const badgeCls = difficultyClass[diff] ?? 'text-[#8a9099] border-white/20 bg-white/[0.04]';
 
   return (
-    <div className="h-full bg-[#0d0d0d] border-r border-white/[0.06] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-      <div className="p-5 space-y-5">
-
-        {/* Title + badge */}
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-sm font-semibold text-[#e2e5e8] leading-snug">
-            {questionIndex !== null ? `${questionIndex + 1}. ` : ''}{question.title}
-          </h1>
-          <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full border capitalize ${badgeCls}`}>
+    <div className="h-full bg-[#0a0c0e] border-r border-white/[0.06] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+      {/* sticky problem header */}
+      <div className="sticky top-0 z-10 px-5 py-3 backdrop-blur-md border-b border-white/[0.06]"
+           style={{ background: 'linear-gradient(180deg, rgba(14,17,20,0.95), rgba(10,12,14,0.85))' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#4ec9b0]">Problem</span>
+          <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize ${badgeCls}`}>
             {question.difficulty}
           </span>
         </div>
+        <h1 className="font-display text-lg font-bold text-[#e8ebee] leading-snug tracking-tight">
+          {questionIndex !== null ? `${questionIndex + 1}. ` : ''}{question.title}
+        </h1>
+      </div>
 
+      <div className="p-5 space-y-6">
         {/* Description */}
         <p className="text-[#a0a6ad] text-[13px] leading-relaxed">
           {question.description}
@@ -116,21 +119,22 @@ const ProblemPanel: React.FC<ProblemPanelProps> = ({ difficulty, roomId, initial
           <div className="space-y-3">
             {question.examples.map((example, index) => (
               <div key={index}>
-                <h3 className="text-[11px] uppercase tracking-widest text-[#4a5057] font-medium mb-2">
-                  Example {index + 1}
+                <h3 className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-[#5c636b] font-bold mb-2">
+                  <span className="w-4 h-px bg-[#4ec9b0]/50" /> Example {index + 1}
                 </h3>
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-3 text-xs font-mono space-y-1.5 text-[#cfd3d6]">
+                <div className="relative bg-white/[0.025] border border-white/[0.07] rounded-xl p-3.5 text-xs font-mono space-y-2 text-[#cfd3d6] overflow-hidden">
+                  <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-[#4ec9b0] to-[#4ec9b0]/0" />
                   <div>
-                    <span className="text-[#6b7075]">Input: </span>
-                    {example.input}
+                    <span className="text-[#4ec9b0] font-semibold">Input </span>
+                    <span className="text-[#cfd3d6]">{example.input}</span>
                   </div>
                   <div>
-                    <span className="text-[#6b7075]">Output: </span>
-                    {example.output}
+                    <span className="text-[#6fe9cf] font-semibold">Output </span>
+                    <span className="text-[#cfd3d6]">{example.output}</span>
                   </div>
                   {example.explanation && (
-                    <div>
-                      <span className="text-[#6b7075]">Explanation: </span>
+                    <div className="pt-1 border-t border-white/[0.05]">
+                      <span className="text-[#5c636b]">Explanation: </span>
                       <span className="text-[#8a9099]">{example.explanation}</span>
                     </div>
                   )}
@@ -143,13 +147,13 @@ const ProblemPanel: React.FC<ProblemPanelProps> = ({ difficulty, roomId, initial
         {/* Constraints */}
         {question.constraints && question.constraints.length > 0 && (
           <div>
-            <h3 className="text-[11px] uppercase tracking-widest text-[#4a5057] font-medium mb-2">
-              Constraints
+            <h3 className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-[#5c636b] font-bold mb-2">
+              <span className="w-4 h-px bg-[#ff6b5e]/50" /> Constraints
             </h3>
             <ul className="space-y-1.5">
               {question.constraints.map((constraint, index) => (
                 <li key={index} className="flex items-start gap-2 text-xs text-[#8a9099]">
-                  <span className="mt-1.5 w-1 h-1 rounded-full bg-white/20 flex-shrink-0" />
+                  <span className="mt-1.5 w-1 h-1 rounded-full bg-[#ff6b5e]/50 flex-shrink-0" />
                   <span className="font-mono leading-relaxed">{constraint}</span>
                 </li>
               ))}

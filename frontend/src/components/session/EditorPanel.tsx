@@ -318,14 +318,14 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
         { token: 'constant',  foreground: 'e2e5e8' },
       ],
       colors: {
-        'editor.background':              '#000000',        // pure black like landing
+        'editor.background':              '#08090b',        // arena ink
         'editor.foreground':              '#cfd3d6',
-        'editor.lineHighlightBackground': '#ffffff06',
-        'editor.selectionBackground':     '#ffffff14',
-        'editor.inactiveSelectionBackground': '#ffffff08',
+        'editor.lineHighlightBackground': '#4ec9b00a',
+        'editor.selectionBackground':     '#4ec9b026',
+        'editor.inactiveSelectionBackground': '#4ec9b012',
         'editorLineNumber.foreground':    '#2e3338',
-        'editorLineNumber.activeForeground': '#6b7075',
-        'editorCursor.foreground':        '#e2e5e8',
+        'editorLineNumber.activeForeground': '#4ec9b0',
+        'editorCursor.foreground':        '#6fe9cf',
         'editorWhitespace.foreground':    '#1a1d20',
         'editorIndentGuide.background1':  '#1a1d20',
         'editorIndentGuide.activeBackground1': '#2e3338',
@@ -339,8 +339,8 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
         'scrollbarSlider.background':     '#ffffff08',
         'scrollbarSlider.hoverBackground':'#ffffff12',
         'scrollbarSlider.activeBackground':'#ffffff18',
-        'editorGutter.background':        '#000000',
-        'minimap.background':             '#000000',
+        'editorGutter.background':        '#08090b',
+        'minimap.background':             '#08090b',
       },
     });
     monaco.editor.setTheme('codetogether-dark');
@@ -371,14 +371,17 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
   }, [onEditorMount, unbind, setCode]);
 
   return (
-    <div className="h-full bg-black flex flex-col">
-      <div className="h-10 bg-black border-b border-white/[0.08] flex items-center justify-between px-4">
-        <div className="flex items-center space-x-4">
-          <span className="text-sm text-[#6b7075] font-mono font-medium">Code</span>
+    <div className="h-full bg-[#08090b] flex flex-col">
+      <div className="h-11 border-b border-white/[0.08] flex items-center justify-between px-4"
+           style={{ background: 'linear-gradient(180deg, #0e1114, #0a0c0e)' }}>
+        <div className="flex items-center space-x-3">
+          <span className="flex items-center gap-1.5 text-xs font-mono-ct font-semibold text-[#6fe9cf]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4ec9b0]" /> editor
+          </span>
           <select
             value={selectedLanguage}
             onChange={(e) => handleLanguageChange(e.target.value as SupportedLanguage)}
-            className="bg-white/[0.04] border border-white/[0.08] rounded px-2 py-1 text-xs text-[#cfd3d6] focus:outline-none focus:border-white/20"
+            className="bg-white/[0.04] border border-white/[0.08] rounded-md px-2.5 py-1 text-xs text-[#cfd3d6] focus:outline-none focus:border-[#4ec9b0]/40 cursor-pointer"
           >
             <option value="javascript">JavaScript</option>
             <option value="python">Python</option>
@@ -418,17 +421,18 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
             onClick={onRun}
             disabled={isSubmitting}
             variant="secondary"
-            className="bg-white/[0.04] hover:bg-white/[0.07] text-[#8a9099] hover:text-[#cfd3d6] text-xs h-7 px-3 border border-white/[0.08] hover:border-white/[0.15]"
+            className="bg-white/[0.04] hover:bg-white/[0.08] text-[#9aa1a9] hover:text-[#e8ebee] text-xs h-7 px-3 border border-white/[0.08] hover:border-[#4ec9b0]/30"
           >
             <Play className="w-3 h-3 mr-1" />
             Run
           </Button>
 
-          {/* Submit Button (All Tests) */}
+          {/* Submit Button (All Tests) — arena teal */}
           <Button
             onClick={onSubmit}
             disabled={isSubmitting}
-            className="bg-green-600 hover:bg-green-700 text-white text-xs h-7 px-3"
+            className="text-xs h-7 px-4 font-semibold border-0 text-[#04201b] transition-all hover:brightness-110 disabled:opacity-60"
+            style={{ background: 'linear-gradient(100deg,#6fe9cf,#4ec9b0)', boxShadow: '0 4px 16px -4px rgba(78,201,176,0.5)' }}
           >
             {isSubmitting ? (
               <>
@@ -445,21 +449,21 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
           {/* Video toggle */}
           <button
             onClick={() => setIsVideoOn((v) => !v)}
-            className={`p-2 rounded border transition-colors duration-150 focus:outline-none ${isVideoOn ? 'bg-white/[0.08] border-white/20 text-[#e2e5e8]' : 'bg-transparent border-white/[0.08] text-[#3a3f45] hover:border-white/[0.15] hover:text-[#8a9099]'}`}
+            className={`p-2 rounded border transition-colors duration-150 focus:outline-none ${isVideoOn ? 'bg-[#4ec9b0]/15 border-[#4ec9b0]/40 text-[#6fe9cf]' : 'bg-transparent border-white/[0.08] text-[#3a3f45] hover:border-white/[0.15] hover:text-[#8a9099]'}`}
             title={isVideoOn ? 'Turn off video' : 'Turn on video'}
           >
             {isVideoOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
           </button>
           <button
             onClick={() => setIsAudioOn((a) => !a)}
-            className={`p-2 rounded border transition-colors duration-150 focus:outline-none ${isAudioOn ? 'bg-white/[0.08] border-white/20 text-[#e2e5e8]' : 'bg-transparent border-white/[0.08] text-[#3a3f45] hover:border-white/[0.15] hover:text-[#8a9099]'}`}
+            className={`p-2 rounded border transition-colors duration-150 focus:outline-none ${isAudioOn ? 'bg-[#4ec9b0]/15 border-[#4ec9b0]/40 text-[#6fe9cf]' : 'bg-transparent border-white/[0.08] text-[#3a3f45] hover:border-white/[0.15] hover:text-[#8a9099]'}`}
             title={isAudioOn ? 'Mute mic' : 'Unmute mic'}
           >
             {isAudioOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
           </button>
           <button
             onClick={() => setIsChatOpen((c) => !c)}
-            className={`p-2 rounded border transition-colors duration-150 focus:outline-none ${isChatOpen ? 'bg-white/[0.08] border-white/20 text-[#e2e5e8]' : 'bg-transparent border-white/[0.08] text-[#3a3f45] hover:border-white/[0.15] hover:text-[#8a9099]'}`}
+            className={`p-2 rounded border transition-colors duration-150 focus:outline-none ${isChatOpen ? 'bg-[#4ec9b0]/15 border-[#4ec9b0]/40 text-[#6fe9cf]' : 'bg-transparent border-white/[0.08] text-[#3a3f45] hover:border-white/[0.15] hover:text-[#8a9099]'}`}
             title={isChatOpen ? 'Hide chat' : 'Show chat'}
           >
             <MessageSquare className="w-4 h-4" />

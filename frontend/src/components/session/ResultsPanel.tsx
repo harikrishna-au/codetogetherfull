@@ -32,46 +32,47 @@ const TestCaseRow: React.FC<{ result: TestCaseResult; index: number }> = ({ resu
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-[#3e3e42] rounded mb-1">
+    <div className="rounded-lg mb-1.5 overflow-hidden border"
+         style={{ borderColor: result.passed ? 'rgba(78,201,176,0.22)' : 'rgba(255,107,94,0.22)', background: result.passed ? 'rgba(78,201,176,0.04)' : 'rgba(255,107,94,0.04)' }}>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-[#2d2d30] transition-colors"
+        className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-white/[0.03] transition-colors"
       >
         <div className="flex items-center gap-2">
           {result.passed ? (
-            <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <CheckCircle className="w-4 h-4 text-[#6fe9cf] flex-shrink-0" />
           ) : (
-            <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <XCircle className="w-4 h-4 text-[#ff8a7e] flex-shrink-0" />
           )}
-          <span className={result.passed ? 'text-green-400' : 'text-red-400'}>
+          <span className={`font-medium ${result.passed ? 'text-[#6fe9cf]' : 'text-[#ff8a7e]'}`}>
             {result.isHidden ? `Hidden Test ${index + 1}` : `Test Case ${index + 1}`}
           </span>
           {result.error && (
-            <span className="text-xs text-red-300 truncate max-w-[200px]">{result.error}</span>
+            <span className="text-xs text-[#ff8a7e]/80 truncate max-w-[200px]">{result.error}</span>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[#888888] flex items-center gap-1">
+          <span className="text-xs text-[#5c636b] flex items-center gap-1 font-mono-ct">
             <Clock className="w-3 h-3" />{result.runtime}ms
           </span>
-          {expanded ? <ChevronDown className="w-3 h-3 text-[#888888]" /> : <ChevronRight className="w-3 h-3 text-[#888888]" />}
+          {expanded ? <ChevronDown className="w-3 h-3 text-[#5c636b]" /> : <ChevronRight className="w-3 h-3 text-[#5c636b]" />}
         </div>
       </button>
       {expanded && !result.isHidden && (
-        <div className="px-3 pb-2 space-y-1.5 text-xs border-t border-[#3e3e42] pt-2">
+        <div className="px-3 pb-2.5 space-y-1.5 text-xs border-t border-white/[0.06] pt-2">
           {result.input && (
             <div>
-              <span className="text-[#888888]">Input: </span>
-              <span className="text-[#cccccc] font-mono">{JSON.stringify(result.input)}</span>
+              <span className="text-[#5c636b]">Input: </span>
+              <span className="text-[#cfd3d6] font-mono-ct">{JSON.stringify(result.input)}</span>
             </div>
           )}
           <div>
-            <span className="text-[#888888]">Expected: </span>
-            <span className="text-[#cccccc] font-mono">{JSON.stringify(result.expected)}</span>
+            <span className="text-[#5c636b]">Expected: </span>
+            <span className="text-[#cfd3d6] font-mono-ct">{JSON.stringify(result.expected)}</span>
           </div>
           <div>
-            <span className="text-[#888888]">Got: </span>
-            <span className={`font-mono ${result.passed ? 'text-green-400' : 'text-red-400'}`}>
+            <span className="text-[#5c636b]">Got: </span>
+            <span className={`font-mono-ct ${result.passed ? 'text-[#6fe9cf]' : 'text-[#ff8a7e]'}`}>
               {JSON.stringify(result.actual)}
             </span>
           </div>
@@ -99,28 +100,41 @@ const TestCaseRow: React.FC<{ result: TestCaseResult; index: number }> = ({ resu
 const ResultsPanel: React.FC<ResultsPanelProps> = ({ isSubmitting, executeResult }) => {
   const allPassed = executeResult && executeResult.passed === executeResult.totalTests;
 
+  const ratio = executeResult && executeResult.totalTests > 0
+    ? executeResult.passed / executeResult.totalTests : 0;
+
   return (
-    <div className="h-full bg-[#252526] border-t border-[#3e3e42] flex flex-col">
-      <div className="h-8 bg-[#2d2d30] border-b border-[#3e3e42] flex items-center justify-between px-4 flex-shrink-0">
-        <span className="text-sm text-[#cccccc]">Test Results</span>
-        {executeResult && (
-          <span className={`text-xs font-medium ${allPassed ? 'text-green-400' : 'text-red-400'}`}>
-            {executeResult.passed}/{executeResult.totalTests} passed
-          </span>
+    <div className="h-full bg-[#0a0c0e] border-t border-white/[0.08] flex flex-col">
+      <div className="h-9 border-b border-white/[0.08] flex items-center justify-between px-4 flex-shrink-0"
+           style={{ background: 'linear-gradient(180deg, #0e1114, #0a0c0e)' }}>
+        <span className="flex items-center gap-1.5 text-xs font-mono-ct font-semibold text-[#9aa1a9]">
+          <span className={`w-1.5 h-1.5 rounded-full ${allPassed ? 'bg-[#4ec9b0]' : executeResult ? 'bg-[#ff6b5e]' : 'bg-[#5c636b]'}`} />
+          test results
+        </span>
+        {executeResult && !executeResult.serviceError && (
+          <div className="flex items-center gap-2">
+            <div className="w-20 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-500"
+                   style={{ width: `${ratio * 100}%`, background: allPassed ? 'linear-gradient(90deg,#4ec9b0,#6fe9cf)' : 'linear-gradient(90deg,#ff6b5e,#ff8a7e)' }} />
+            </div>
+            <span className={`text-xs font-semibold tabular-nums ${allPassed ? 'text-[#6fe9cf]' : 'text-[#ff8a7e]'}`}>
+              {executeResult.passed}/{executeResult.totalTests}
+            </span>
+          </div>
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
         {isSubmitting && (
-          <div className="flex items-center gap-2 text-[#cccccc] text-sm">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Running test cases...</span>
+          <div className="flex items-center gap-2 text-[#9aa1a9] text-sm">
+            <Loader2 className="w-4 h-4 animate-spin text-[#4ec9b0]" />
+            <span>Running test cases…</span>
           </div>
         )}
 
         {!isSubmitting && !executeResult && (
-          <div className="text-sm text-[#888888]">
-            Click <span className="text-white">Submit</span> to run your code against test cases.
+          <div className="text-sm text-[#5c636b]">
+            Hit <span className="text-[#6fe9cf] font-semibold">Submit</span> to run your code against every test case.
           </div>
         )}
 
@@ -145,12 +159,12 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ isSubmitting, executeResult
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-4 mb-3 text-xs text-[#888888]">
-                  <span className="flex items-center gap-1">
+                <div className="flex items-center gap-4 mb-3 text-xs text-[#5c636b]">
+                  <span className="flex items-center gap-1 font-mono-ct">
                     <Clock className="w-3 h-3" />
-                    Runtime: {executeResult.overallRuntime}ms
+                    {executeResult.overallRuntime}ms
                   </span>
-                  <span className={allPassed ? 'text-green-400' : 'text-yellow-400'}>
+                  <span className={`font-semibold ${allPassed ? 'text-[#6fe9cf]' : 'text-[#ff8a7e]'}`}>
                     {allPassed ? '✓ All tests passed' : `${executeResult.failed} test(s) failed`}
                   </span>
                 </div>
