@@ -131,12 +131,14 @@ const LoadingScreen = ({
         visibility: done ? 'hidden' : 'visible',
       }}
     >
-      {/* aurora + grid */}
-      <div className="arena-aurora ct-drift" style={{ top: '-20%', left: '-10%', width: '52vw', height: '52vw', background: 'radial-gradient(circle, rgba(78,201,176,0.22) 0%, transparent 70%)' }} />
-      <div className="arena-aurora ct-drift-slow" style={{ bottom: '-22%', right: '-12%', width: '54vw', height: '54vw', background: 'radial-gradient(circle, rgba(255,107,94,0.18) 0%, transparent 70%)' }} />
-      <div className="absolute inset-0 arena-grid opacity-50" />
-      <div className="absolute inset-0 ct-noise opacity-[0.04] mix-blend-overlay" />
+      {/* aurora + grid — decorative only, must not intercept clicks */}
+      <div className="arena-aurora ct-drift pointer-events-none" style={{ top: '-20%', left: '-10%', width: '52vw', height: '52vw', background: 'radial-gradient(circle, rgba(78,201,176,0.22) 0%, transparent 70%)' }} />
+      <div className="arena-aurora ct-drift-slow pointer-events-none" style={{ bottom: '-22%', right: '-12%', width: '54vw', height: '54vw', background: 'radial-gradient(circle, rgba(255,107,94,0.18) 0%, transparent 70%)' }} />
+      <div className="absolute inset-0 arena-grid opacity-50 pointer-events-none" />
+      <div className="absolute inset-0 ct-noise opacity-[0.04] mix-blend-overlay pointer-events-none" />
 
+      {/* interactive content sits above all decoration */}
+      <div className="relative z-10 flex flex-col items-center">
       {/* centerpiece (cube by default) */}
       {centerpiece ?? <CubeScene />}
 
@@ -183,9 +185,10 @@ const LoadingScreen = ({
 
       {/* caller content */}
       {children}
+      </div>
 
       {/* footer tag */}
-      <div className="absolute bottom-6 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-semibold" style={{ color: 'var(--fg-faint)' }}>
+      <div className="absolute bottom-6 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-semibold pointer-events-none" style={{ color: 'var(--fg-faint)' }}>
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--teal)] animate-pulse" />
         real-time coding arena
       </div>
